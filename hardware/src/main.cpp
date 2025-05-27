@@ -1,17 +1,24 @@
 #include <Arduino.h>
+#include <Servo.h>
 
-// put function declarations here:
-int myFunction(int, int);
+Servo servoX;
+Servo servoY;
 
 void setup() {
   // put your setup code here, to run once:
+  Serial.begin(9600);     // Match this with Python serial baudrate
+  servoX.attach(9);       // Set your actual servo pin
+  servoY.attach(10);      // Set your actual servo pin
+  servoX.write(90);
+  servoY.write(90);
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
-}
+  if (Serial.available() >= 2) {
+    int angleX = Serial.read();
+    int angleY = Serial.read();
 
-// put function definitions here:
-int myFunction(int x, int y) {
-  return x * y;
+    servoX.write(angleX);
+    servoY.write(angleY);
+  }
 }
