@@ -1,9 +1,8 @@
 import mediapipe as mp
 import numpy as np
 import cv2 as cv
-from visualization_utils import visualize
 import time
-
+from visualization_utils import visualize
 
 # Create a FaceDetector object.
 BaseOptions = mp.tasks.BaseOptions
@@ -18,6 +17,8 @@ options = FaceDetectorOptions(
 detector = FaceDetector.create_from_options(options)
 
 cap = cv.VideoCapture(0)
+ws = int(cap.get(cv.CAP_PROP_FRAME_WIDTH))
+hs = int(cap.get(cv.CAP_PROP_FRAME_HEIGHT))
 
 if not cap.isOpened():
     print("Cannot open camera")
@@ -32,19 +33,27 @@ while True:
         print("Can't receive frame (stream end?). Exiting ...")
         break
 
-    frame_timestamp_ms = int(time.time()*1000)
     mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame)
+    frame_timestamp_ms = int(time.time()*1000)
     
     detection_result = detector.detect_for_video(mp_image, frame_timestamp_ms)
 
-    # STEP 5: Process the detection result. In this case, visualize it.
+    # Call the visualize function to annotate the image. Also obtain the (x,y) of the face's center point.
     image_copy = np.copy(mp_image.numpy_view())
-    annotated_image = visualize(image_copy, detection_result)
+    annotated_image, face_pos = visualize(image_copy, detection_result)
     cv.imshow('Camera', annotated_image)
+
+    if face_pos:
+        # Takes the face_pos coordinates, and assigns a servo angle based on their position relative to the image frame
+        servoX = np.interp(face_pos[0], [0, ws], [0, 180])
+        servoY = np.interp(face_pos[1], [0, hs], [0, 180])
+
+    # if face_pos[0] is greater than center of screen, move servo-1 at an angle that reduces this value. while face_pos greater than center, 
+    # find out window height and width
+    
 
     if cv.waitKey(1) == ord('q'):
         break
- 
 
 # When everything done, release the capture
 cap.release()
