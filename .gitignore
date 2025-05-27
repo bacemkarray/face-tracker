@@ -3,5 +3,5 @@ venv/
 __pycache__/
 
 # PlatformIO
-arduino/.pio/
-arduino/.vscode/
+hardware/.pio/
+hardware/.vscode/
