@@ -2,12 +2,14 @@ import mediapipe as mp
 import numpy as np
 import cv2 as cv
 import time
-from visualization_utils import visualize
 import serial
+import struct
+from visualization_utils import visualize
+from noise_correction import SlidingAverage
+from controls import PDController
 
-# Configure serial communication
-s = serial.Serial(port='COM3',
-                  baudrate=9600)
+s = serial.Serial(port="COM3",
+                  baudrate=115200)
 
 # Create a FaceDetector object.
 BaseOptions = mp.tasks.BaseOptions
@@ -19,13 +21,18 @@ options = FaceDetectorOptions(
     running_mode=VisionRunningMode.VIDEO)
 detector = FaceDetector.create_from_options(options)
 
-# Default servo angles are set to 90 degrees.
-prevX = 90
-prevY = 90
+cap = cv.VideoCapture(1)
+width = int(cap.get(cv.CAP_PROP_FRAME_WIDTH)) # width of frame
+height = int(cap.get(cv.CAP_PROP_FRAME_HEIGHT)) # height of frame
 
-cap = cv.VideoCapture(0)
-ws = int(cap.get(cv.CAP_PROP_FRAME_WIDTH))
-hs = int(cap.get(cv.CAP_PROP_FRAME_HEIGHT))
+frame_cx = width//2 # center of frame on x-axis
+
+frame_cy = height//2 # center of frame on y-axis
+
+controller = PDController(frame_cx, frame_cy)
+
+y_smoother = SlidingAverage(window_size=5)
+x_smoother = SlidingAverage(window_size=5)
 
 if not cap.isOpened():
     print("Cannot open camera")
@@ -51,28 +58,16 @@ while True:
     cv.imshow('Camera', annotated_image)
 
     if face_pos:
-
-        # Takes the face_pos coordinates, and assigns a servo angle based on their position relative to the image frame
-        servoX = 180-np.interp(face_pos[0], [0, ws], [0, 180])
-        servoY = 180-np.interp(face_pos[1], [0, hs], [0, 180])
-
-        # Simple exponential smoothing
-        alpha = 0.2
-        smoothedX = int(alpha * servoX + (1 - alpha) * prevX)
-        smoothedY = int(alpha * servoY + (1 - alpha) * prevY)
-        prevX = smoothedX
-        prevY = smoothedY
-        
-        # send data to arduino
-        s.write([smoothedX,smoothedY])
-
-    # if face_pos[0] is greater than center of screen, move servo-1 at an angle that reduces this value. while face_pos greater than center, 
-    # find out window height and width
+        face_x, face_y = face_pos
+        current_x, current_y = controller.update(face_x, face_y, x_smoother, y_smoother)
+                
+        # send data to MCU
+        packet = struct.pack('<HH', int(current_x), int(current_y))
+        s.write(packet)
     
-
     if cv.waitKey(1) == ord('q'):
         break
 
-# When everything done, release the capture
+# When everything done, release the captuqre
 cap.release()
 cv.destroyAllWindows()
