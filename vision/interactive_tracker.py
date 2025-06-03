@@ -9,15 +9,13 @@ from ultralytics import YOLO
 from ultralytics.utils import LOGGER
 from ultralytics.utils.plotting import Annotator, colors
 
-from controls import PDController
-from noise_correction import SlidingAverage
 import serial
 import struct
 
 s = serial.Serial(port="COM3",
                   baudrate=115200)
 
-enable_gpu = False  # Set True if running with CUDA
+enable_gpu = True  # Set True if running with CUDA
 model_file = "vision/yolov11l-face.pt"  # Path to model file
 show_fps = True  # If True, shows current FPS in top-left corner
 show_conf = False  # Display or hide the confidence score
@@ -49,14 +47,6 @@ else:
 classes = model.names  # Store model class names
 
 cap = cv2.VideoCapture(1)  # Replace with video path if needed
-width  = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-frame_cx = width // 2
-frame_cy = height // 2
-controller = PDController(frame_cx, frame_cy)
-
-y_smoother = SlidingAverage(window_size=1)
-x_smoother = SlidingAverage(window_size=1)
 
 # Initialize video writer
 vw = None
@@ -193,10 +183,12 @@ while cap.isOpened():
             draw_tracking_scope(im, (x1, y1, x2, y2), color)
             center = get_center(x1, y1, x2, y2)
             cv2.circle(im, center, 6, color, -1)
-            current_x, current_y = controller.update(center[0], center[1], x_smoother, y_smoother)
             
-            # send data to MCU
-            packet = struct.pack('<HH', int(current_x), int(current_y))
+            # Returns integer servo angles ready to be sent to the controller
+            # current_x, current_y = controller.update(center[0], center[1])
+            face_x, face_y = center[0], center[1]
+            # send data to MCU (little endian)
+            packet = struct.pack('<HH', face_x, face_y)
             s.write(packet)
             LOGGER.info(center)
 
