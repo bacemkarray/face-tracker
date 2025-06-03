@@ -1,7 +1,11 @@
-#ifndef PDCONTROLLER.h
-#define PDCONTROLLER.h
+#ifndef PDCONTROLLER_H
+#define PDCONTROLLER_H
 
-#include <utility>
+struct ServoCommand {
+    int x;
+    int y;
+};
+
 class PDController {
     private:
         float frame_cx, frame_cy;
@@ -20,9 +24,8 @@ class PDController {
                  float Kp_y = 0.010f, float Kd_y = 0.004f,
                  float alpha = 0.5f, float deadpx = 12.0f,
                  float max_step_x = 0.3f, float max_step_y = 0.2f);
-
-        std::pair<int, int> update(float face_x, float face_y);
-
+        
+        ServoCommand update(float face_x, float face_y);
 };
 
 
