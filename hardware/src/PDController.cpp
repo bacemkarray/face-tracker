@@ -6,23 +6,15 @@ PDController::PDController(float f_cx, float f_cy,
                            float Kpy, float Kdy,
                            float a, float dpx,
                            float mx, float my)
-  : frame_cx(f_cx),
-    frame_cy(f_cy),
-    Kp_x(Kpx),
-    Kd_x(Kdx),
-    Kp_y(Kpy),
-    Kd_y(Kdy),
-    alpha(a),
-    deadpx(dpx),
-    max_step_x(mx),
-    max_step_y(my),
+  : frame_cx(f_cx), frame_cy(f_cy),
+    Kp_x(Kpx), Kd_x(Kdx),
+    Kp_y(Kpy), Kd_y(Kdy),
+    alpha(a), deadpx(dpx),
+    max_step_x(mx), max_step_y(my),
     
-    prev_error_x(0.0f),
-    prev_error_y(0.0f),
-    prev_step_x(0.0f),
-    prev_step_y(0.0f),
-    current_x(90.0f),
-    current_y(0.0f)
+    prev_error_x(0.0f), prev_error_y(0.0f),
+    prev_step_x(0.0f), prev_step_y(0.0f),
+    current_x(90.0f), current_y(0.0f)
 {}
 
 ServoCommand PDController::update(float face_x, float face_y) {
@@ -70,7 +62,7 @@ ServoCommand PDController::update(float face_x, float face_y) {
     prev_step_y = servo_step_y;
 
     current_x = fminf(fmaxf(current_x - servo_step_x, 0.0f), 180.0f);
-    current_y = fminf(fmaxf(current_y - servo_step_y, 0.0f), 45.0f);
+    current_y = fminf(fmaxf(current_y - servo_step_y, 0.0f), 180.0f);
 
     int send_x = (int)(roundf(current_x));
     int send_y = (int)(roundf(current_y));
