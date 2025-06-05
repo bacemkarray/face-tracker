@@ -22,7 +22,7 @@ class PDController {
         PDController(float frame_cx, float frame_cy,
                  float Kp_x = 0.05f, float Kd_x = 0.005f,
                  float Kp_y = 0.010f, float Kd_y = 0.004f,
-                 float alpha = 0.5f, float deadpx = 12.0f,
+                 float alpha = 1.0f, float deadpx = 12.0f,
                  float max_step_x = 0.3f, float max_step_y = 0.2f);
         
         ServoCommand update(float face_x, float face_y);
