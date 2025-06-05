@@ -1,5 +1,5 @@
 #include <Arduino.h>
-#include <Servo.h>
+#include <ESP32Servo.h>
 #include "PDController.h"
 
 Servo base;
@@ -46,9 +46,9 @@ void setup() {
   Serial.begin(115200);
 
   // Attach each servo to its pin:
-  base.attach(9);         // yaw / pan
-  servo_elbow.attach(10); // elbow “bend”
-  arm.attach(11);         // shoulder pitch
+  base.attach(12);         // yaw / pan
+  servo_elbow.attach(19); // elbow “bend”
+  arm.attach(21);         // shoulder pitch
 
   // Initialize to neutral positions:
   base.write(90);                      // face centered
