@@ -57,6 +57,7 @@ if save_video:
 selected_object_id = None
 selected_bbox = None
 selected_center = None
+results = None
 
 
 def get_center(x1: int, y1: int, x2: int, y2: int) -> Tuple[int, int]:
@@ -133,8 +134,8 @@ def click_event(event: int, x: int, y: int, flags: int, param) -> None:
         flags (int): Any relevant flags passed by OpenCV.
         param (Any): Additional parameters (not used).
     """
-    global selected_object_id
-    if event == cv2.EVENT_LBUTTONDOWN:
+    global selected_object_id, results
+    if event == cv2.EVENT_LBUTTONDOWN and results is not None:
         detections = results[0].boxes.data if results[0].boxes is not None else []
         if detections is not None:
             min_area = float("inf")
