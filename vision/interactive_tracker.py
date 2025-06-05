@@ -12,7 +12,7 @@ from ultralytics.utils.plotting import Annotator, colors
 import serial
 import struct
 
-s = serial.Serial(port="COM3",
+s = serial.Serial(port="COM6",
                   baudrate=115200)
 
 enable_gpu = True  # Set True if running with CUDA
