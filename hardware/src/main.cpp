@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <ESP32Servo.h>
 #include "PDController.h"
+#include <Kinematics.h>
 
 Servo base;
 Servo servo_elbow;
@@ -19,7 +20,20 @@ static const float  Kd_y       = 0.005f;
 // Exponential smoothing factor and other PDController params:
 static const float  DEADPX     = 25.0f;   // pixels dead‐zone
 static const float  MAX_STEP_X = 0.5f;    // deg/frame x
-static const float  MAX_STEP_Y = 0.3f;    // deg/frame y
+static const float  MAX_STEP_Y = 0.5f;    // deg/frame y
+
+static const float SHOULDER_LEN = 10.5f;   // e.g. 10 cm
+static const float  ELBOW_LEN   = 16.5f;   // e.g. 10 cm
+
+// how many real‐world units per pixel in Y.
+// Calibrate by measuring how many cm the end‐effector moves
+// when the face moves N pixels vertically.
+static const float Y_SCALE = 0.1f;   // e.g. 0.1 cm/pixel
+
+// --- globals for IK ---
+Kinematics ik(SHOULDER_LEN, ELBOW_LEN);
+Position  homePos;
+float     fixedX, fixedZ;
 
 // Instantiate PDController:
 PDController controller(
@@ -44,26 +58,42 @@ void setup() {
   base.write(90); // 90 is center, 0 is to the left, 180 is to the right
   servo_elbow.write(0); // 0 is straight ahead, 90 is up, 180 is all the way back        
   shoulder.write(45); // 0 all the way back, 45 a good neutral, 90 is straight up
+
+  // record the default FK so we can hold x,z constant
+  homePos = ik.getPositions();
+  fixedX  = homePos.x;     // unused by your pan servo
+  fixedZ  = homePos.z;     // keep depth constant
 }
 
 void loop() {
   // We expect 4 bytes from Serial per frame (face_x, face_y as two‐byte integers):
-  if (Serial.available() >= 4) {
-    // Read face_x (low‐byte, high‐byte)
-     uint16_t face_x = Serial.read();
-    face_x |= ( (uint16_t)Serial.read() << 8 );
+  if (Serial.available() < 4) return;
+  // Read face_x (low‐byte, high‐byte)
+  uint16_t face_x = Serial.read() | (Serial.read() << 8);
+  // Read face_y (low‐byte, high‐byte)
+  uint16_t face_y = Serial.read() | (Serial.read() << 8);
 
-    // Read face_y (low‐byte, high‐byte)
-    uint16_t face_y = Serial.read();
-    face_y |= ( (uint16_t)Serial.read() << 8 );
+  // Run PD update. Returns { x = pan, y = tilt }
+  auto cmd = controller.update((float)face_x, (float)face_y);
+  int send_x = cmd.x;
+  int send_y = cmd.y;
+  
+  base.write(send_x);
 
-    // Run PD update. Returns { x = pan, y = tilt }
-    auto command = controller.update((float)face_x, (float)face_y);
-    int send_x = command.x;  // “pan” angle
-    int send_y = command.y;  // “tilt” angle
+  // 2) VERTICAL plane → IK
+  float dy_cm = send_y * Y_SCALE;
+  float targetY = homePos.y + dy_cm;
 
-    base.write(send_x);             // yaw/pan stays unchanged
-    servo_elbow.write(send_y); // new elbow “bend” angle
-    // shoulder.write(send_y);         // new shoulder pitch angle
-  }
+  // solve IK for (x= fixedX, y= targetY, z= fixedZ)
+  ik.moveToPosition(fixedX, targetY, fixedZ);
+
+  // 3) pull out the two joint angles
+  Angle ang = ik.getAngles();
+  // assume ang.a2 = shoulder angle, ang.a3 = elbow angle
+  int shoulder_deg = (int)roundf(ang.theta2);
+  int   elbow_deg  = (int)roundf(ang.theta3);
+
+  // 4) send to servos
+  shoulder.write(shoulder_deg);
+  servo_elbow.write(elbow_deg);
 }
