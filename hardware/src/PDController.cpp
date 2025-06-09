@@ -18,6 +18,7 @@ PDController::PDController(float f_cx, float f_cy,
 {}
 
 ServoCommand PDController::update(float face_x, float face_y) {
+    float Y_SCALE = 0.0286;
     // error between center of frame and face
     float error_x = face_x - frame_cx; // more left = more negative
     float error_y = face_y - frame_cy; // more up = more negative
@@ -47,7 +48,7 @@ ServoCommand PDController::update(float face_x, float face_y) {
         prev_step_y = 0.0f;
     }
     else {
-        pd_cmd_y = Kp_y * error_y + Kd_y * d_error_y;
+        pd_cmd_y = Y_SCALE * Kp_y * error_y + Kd_y * d_error_y;
         pd_cmd_y = fminf(fmaxf(pd_cmd_y, -max_step_y), max_step_y);
     }
 
@@ -62,10 +63,10 @@ ServoCommand PDController::update(float face_x, float face_y) {
     prev_step_y = servo_step_y;
 
     current_x = fminf(fmaxf(current_x - servo_step_x, 0.0f), 180.0f);
-    current_y = fminf(fmaxf(current_y - servo_step_y, 0.0f), 45.0f);
+    // current_y = fminf(fmaxf(current_y - servo_step_y, 0.0f), 45.0f);
 
-    int send_x = (int)(roundf(current_x));
-    int send_y = (int)(roundf(current_y));
+    int send_x_deg = (int)(roundf(current_x));
+    float send_y_cm = servo_step_y;
 
-    return { send_x, send_y };
+    return { send_x_deg, send_y_cm };
 }
