@@ -3,7 +3,7 @@
 
 struct ServoCommand {
     int x;
-    int y;
+    float y;
 };
 
 class PDController {

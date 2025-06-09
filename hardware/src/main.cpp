@@ -25,10 +25,16 @@ static const float  MAX_STEP_Y = 0.5f;    // deg/frame y
 static const float SHOULDER_LEN = 10.5f;   // e.g. 10 cm
 static const float  ELBOW_LEN   = 16.5f;   // e.g. 10 cm
 
+static const int SHOULDER_MIN = 45;
+static const int SHOULDER_MAX = 80;
+
+static const int ELBOW_MIN = 0;
+static const int ELBOW_MAX = 90;
+
 // how many real‐world units per pixel in Y.
 // Calibrate by measuring how many cm the end‐effector moves
 // when the face moves N pixels vertically.
-static const float Y_SCALE = 0.1f;   // e.g. 0.1 cm/pixel
+static const float Y_SCALE = 0.0286f;   // estimated 70 pixels = 2 cm
 
 // --- globals for IK ---
 Kinematics ik(SHOULDER_LEN, ELBOW_LEN);
@@ -76,13 +82,12 @@ void loop() {
   // Run PD update. Returns { x = pan, y = tilt }
   auto cmd = controller.update((float)face_x, (float)face_y);
   int send_x = cmd.x;
-  int send_y = cmd.y;
+  float send_y = cmd.y;
   
   base.write(send_x);
 
   // 2) VERTICAL plane → IK
-  float dy_cm = send_y * Y_SCALE;
-  float targetY = homePos.y + dy_cm;
+  float targetY = homePos.y + cmd.y;
 
   // solve IK for (x= fixedX, y= targetY, z= fixedZ)
   ik.moveToPosition(fixedX, targetY, fixedZ);
@@ -91,9 +96,18 @@ void loop() {
   Angle ang = ik.getAngles();
   // assume ang.a2 = shoulder angle, ang.a3 = elbow angle
   int shoulder_deg = (int)roundf(ang.theta2);
-  int   elbow_deg  = (int)roundf(ang.theta3);
+  int elbow_deg  = (int)roundf(ang.theta3);
 
-  // 4) send to servos
+  shoulder_deg = constrain(shoulder_deg, SHOULDER_MIN, SHOULDER_MAX);
+  elbow_deg    = constrain(elbow_deg,    ELBOW_MIN,    ELBOW_MAX);
+
   shoulder.write(shoulder_deg);
   servo_elbow.write(elbow_deg);
-}
+
+  static unsigned long lastPrint = 0;
+  if (millis() - lastPrint > 500) {
+      Serial.printf("Face Y: %d, Δcm: %.2f, Shoulder: %d, Elbow: %d\n",
+                    face_y, cmd.y, shoulder_deg, elbow_deg);
+      lastPrint = millis();
+  }
+} 
