@@ -12,6 +12,9 @@ from ultralytics.utils.plotting import Annotator, colors
 import serial
 import struct
 
+from agent import FaceTrackingAgent
+agent = FaceTrackingAgent()
+
 s = serial.Serial(port="COM6",
                   baudrate=115200)
 
@@ -170,6 +173,7 @@ while cap.isOpened():
     annotator = Annotator(im)
     detections = results[0].boxes.data if results[0].boxes is not None else []
     detected_objects = []
+    center = None
     for track in detections:
         track = track.tolist()
         if len(track) < 6:
@@ -180,19 +184,11 @@ while cap.isOpened():
         color = colors(track_id, True)
         txt_color = annotator.get_txt_color(color)
         label = f"{classes[class_id]} ID {track_id}" + (f" ({float(track[5]):.2f})" if show_conf else "")
+        # if the face being tracked is equal to the face the user selected.
         if track_id == selected_object_id:
             draw_tracking_scope(im, (x1, y1, x2, y2), color)
             center = get_center(x1, y1, x2, y2)
             cv2.circle(im, center, 6, color, -1)
-            
-            # Returns integer servo angles ready to be sent to the controller
-            # current_x, current_y = controller.update(center[0], center[1])
-            face_x, face_y = center[0], center[1]
-            # send data to MCU (little endian)
-            packet = struct.pack('<HH', face_x, face_y)
-            s.write(packet)
-            LOGGER.info(center)
-
 
             # Pulsing circle for attention
             pulse_radius = 8 + int(4 * abs(time.time() % 1 - 0.5))
@@ -211,6 +207,14 @@ while cap.isOpened():
             (tw, th), bl = cv2.getTextSize(label, 0, 0.7, 2)
             cv2.rectangle(im, (x1 + 5 - 5, y1 + 20 - th - 5), (x1 + 5 + tw + 5, y1 + 20 + bl), color, -1)
             cv2.putText(im, label, (x1 + 5, y1 + 20), 0, 0.7, txt_color, 1, cv2.LINE_AA)
+
+    agent.observe(center) # Sets tracking goal to face center
+    agent.decide() # Reset to idle if no face for 1 second
+    goal = agent.act() # Returns current tracking goal
+    packet = struct.pack('<HH', goal[0], goal[1])
+    # send data to MCU (little endian)
+    s.write(packet)
+    LOGGER.info(f"Agent [{agent.mode}]: Sent {goal}")
 
     if show_fps:
         fps_counter += 1
