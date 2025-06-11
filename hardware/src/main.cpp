@@ -39,7 +39,7 @@ static const float Y_SCALE = 0.0286f;   // estimated 70 pixels = 2 cm
 // --- globals for IK ---
 Kinematics ik(SHOULDER_LEN, ELBOW_LEN);
 Position  homePos;
-float     fixedX, fixedZ;
+float     fixedX, fixedY, fixedZ;
 
 // Instantiate PDController:
 PDController controller(
@@ -65,9 +65,12 @@ void setup() {
   servo_elbow.write(0); // 0 is straight ahead, 90 is up, 180 is all the way back        
   shoulder.write(45); // 0 all the way back, 45 a good neutral, 90 is straight up
 
+  ik.moveToAngle(45.0f, 0.0f, 0.0f);
+
   // record the default FK so we can hold x,z constant
   homePos = ik.getPositions();
   fixedX  = homePos.x;     // unused by your pan servo
+  fixedY  = homePos.y;     
   fixedZ  = homePos.z;     // keep depth constant
 }
 
@@ -82,24 +85,25 @@ void loop() {
   // Run PD update. Returns { x = pan, y = tilt }
   auto cmd = controller.update((float)face_x, (float)face_y);
   int send_x = cmd.x;
-  float send_y = cmd.y;
+  float dZ_cm = cmd.y;
   
   base.write(send_x);
 
-  // 2) VERTICAL plane → IK
-  float targetY = homePos.y + cmd.y;
+  float targetX = fixedX;
+  float targetY = fixedY;      // keep lateral plane fixed
+  float targetZ = fixedZ + dZ_cm;   // move up/down
 
   // solve IK for (x= fixedX, y= targetY, z= fixedZ)
-  ik.moveToPosition(fixedX, targetY, fixedZ);
+  ik.moveToPosition(targetX, targetY, targetZ);
 
   // 3) pull out the two joint angles
   Angle ang = ik.getAngles();
-  // assume ang.a2 = shoulder angle, ang.a3 = elbow angle
-  int shoulder_deg = (int)roundf(ang.theta2);
-  int elbow_deg  = (int)roundf(ang.theta3);
+  // assume ang.a1 = shoulder angle, ang.a2 = elbow angle
+  int shoulder_deg = (int)roundf(ang.theta1);
+  int elbow_deg  = (int)roundf(ang.theta2);
 
-  shoulder_deg = constrain(shoulder_deg, SHOULDER_MIN, SHOULDER_MAX);
-  elbow_deg    = constrain(elbow_deg,    ELBOW_MIN,    ELBOW_MAX);
+  // shoulder_deg = constrain(shoulder_deg, SHOULDER_MIN, SHOULDER_MAX);
+  // elbow_deg    = constrain(elbow_deg,    ELBOW_MIN,    ELBOW_MAX);
 
   shoulder.write(shoulder_deg);
   servo_elbow.write(elbow_deg);

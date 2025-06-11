@@ -13,7 +13,7 @@ import serial
 import struct
 
 s = serial.Serial(port="COM6",
-                  baudrate=115200)
+                  baudrate=115200, timeout=0)
 
 enable_gpu = True  # Set True if running with CUDA
 model_file = "vision/yolov11l-face.pt"  # Path to model file
@@ -191,8 +191,11 @@ while cap.isOpened():
             # send data to MCU (little endian)
             packet = struct.pack('<HH', face_x, face_y)
             s.write(packet)
-            LOGGER.info(center)
-
+            # LOGGER.info(center)
+            while s.in_waiting > 0:
+                line = s.readline().decode('ascii', errors='ignore').strip()
+                if line:
+                    print("Arduino →", line)
 
             # Pulsing circle for attention
             pulse_radius = 8 + int(4 * abs(time.time() % 1 - 0.5))
