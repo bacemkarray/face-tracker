@@ -11,15 +11,15 @@ static const float FRAME_WIDTH  = 640.0f;
 static const float FRAME_HEIGHT = 480.0f;
 
 // PD gains and other constants:
-static const float  Kp_x       = 0.06f;
-static const float  Kd_x       = 0.007f;
-static const float  Kp_y       = 0.04f;
-static const float  Kd_y       = 0.005f;
+static const float  Kp_x       = 0.04f;
+static const float  Kd_x       = 0.01f;
+static const float  Kp_y       = 0.02f;
+static const float  Kd_y       = 0.01f;
 
 // Exponential smoothing factor and other PDController params:
 static const float  DEADPX     = 25.0f;   // pixels dead‐zone
-static const float  MAX_STEP_X = 0.5f;    // deg/frame x
-static const float  MAX_STEP_Y = 0.3f;    // deg/frame y
+static const float  MAX_STEP_X = 0.4f;    // deg/frame x
+static const float  MAX_STEP_Y = 0.1f;    // deg/frame y
 
 // Instantiate PDController:
 PDController controller(
