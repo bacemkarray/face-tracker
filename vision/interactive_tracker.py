@@ -1,4 +1,5 @@
 # Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license
+# Modified by Bacem Karray for personal use
 
 import time
 from typing import Tuple
@@ -12,8 +13,9 @@ from ultralytics.utils.plotting import Annotator, colors
 import serial
 import struct
 
-from agent import FaceTrackingAgent
-agent = FaceTrackingAgent()
+import agent as ag
+import agent_states
+agent = ag.FaceTrackingAgent(agent_states.Searching())
 
 s = serial.Serial(port="COM6",
                   baudrate=115200)
@@ -208,13 +210,7 @@ while cap.isOpened():
             cv2.rectangle(im, (x1 + 5 - 5, y1 + 20 - th - 5), (x1 + 5 + tw + 5, y1 + 20 + bl), color, -1)
             cv2.putText(im, label, (x1 + 5, y1 + 20), 0, 0.7, txt_color, 1, cv2.LINE_AA)
 
-    agent.observe(center) # Sets tracking goal to face center
-    agent.decide() # Reset to idle if no face for 1 second
-    goal = agent.act() # Returns current tracking goal
-    packet = struct.pack('<HH', goal[0], goal[1])
-    # send data to MCU (little endian)
-    s.write(packet)
-    LOGGER.info(f"Agent [{agent.mode}]: Sent {goal}")
+    
 
     if show_fps:
         fps_counter += 1
@@ -239,9 +235,32 @@ while cap.isOpened():
     key = cv2.waitKey(1) & 0xFF
     if key == ord("q"):
         break
+
     elif key == ord("c"):
         LOGGER.info("🟢 TRACKING RESET")
         selected_object_id = None
+
+    elif key == ord("v"):
+        agent.state = agent_states.Searching()
+        LOGGER.info("SWITCHED TO SEARCHING MODE")
+
+    elif key == ord("m"):
+        agent.state = agent_states.Manual()
+        LOGGER.info("SWITCHED TO MANUAL CONTROL")
+
+    elif isinstance(agent.state, agent_states.Manual):
+        x, y = agent.state.override_goal
+        if key == ord("w"): y -= 10
+        if key == ord("s"): y += 10
+        if key == ord("a"): x += 10
+        if key == ord("d"): x -= 10
+        agent.state.set_goal((x, y))
+
+    goal = agent.update(center)
+    packet = struct.pack('<HH', goal[0], goal[1])
+    # send data to MCU (little endian)
+    s.write(packet)
+    LOGGER.info(f"Sent {goal}")
 
 cap.release()
 if save_video and vw is not None:
