@@ -23,9 +23,15 @@ ServoCommand PDController::update(float face_x, float face_y) {
     float error_y = face_y - frame_cy; // more up = more negative
 
     // Pixel deadzones (to prevent servo response from small face movements)
-    if (fabsf(error_x) < deadpx) error_x = 0.0f;
-    if (fabsf(error_y) < deadpx) error_y = 0.0f;
+    if (fabsf(error_x) < deadpx) {
+        error_x = 0.0f;
+        prev_error_x = 0.0f;
+    }
 
+    if (fabsf(error_y) < deadpx) {
+        error_y = 0.0f;
+        prev_error_y = 0.0f;
+    }
     // Derivative (pixels/frame)
     float d_error_x = error_x - prev_error_x;
     float d_error_y = error_y - prev_error_y;
@@ -50,7 +56,6 @@ ServoCommand PDController::update(float face_x, float face_y) {
         pd_cmd_y = Kp_y * error_y + Kd_y * d_error_y;
         pd_cmd_y = fminf(fmaxf(pd_cmd_y, -max_step_y), max_step_y);
     }
-
 
     prev_error_x = error_x;
     prev_error_y = error_y;
