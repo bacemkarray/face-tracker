@@ -14,8 +14,7 @@ import serial
 import struct
 
 import agent as ag
-import agent_states
-agent = ag.FaceTrackingAgent(agent_states.Searching())
+agent = ag.FaceAgent()
 
 s = serial.Serial(port="COM6",
                   baudrate=115200)
@@ -159,6 +158,7 @@ def click_event(event: int, x: int, y: int, flags: int, param) -> None:
             if best_match:
                 selected_object_id, label = best_match
                 print(f"🔵 TRACKING STARTED: {label} (ID {selected_object_id})")
+                agent.add_task({"task": "track"})
 
 
 cv2.namedWindow(window_name)
@@ -241,22 +241,10 @@ while cap.isOpened():
         selected_object_id = None
 
     elif key == ord("v"):
-        agent.state = agent_states.Searching()
-        LOGGER.info("SWITCHED TO SEARCHING MODE")
+        agent.add_task({"task": "scan", "duration": 5})
+        LOGGER.info("SWITCHED TO SCANNING MODE")
 
-    elif key == ord("m"):
-        agent.state = agent_states.Manual()
-        LOGGER.info("SWITCHED TO MANUAL CONTROL")
-
-    elif isinstance(agent.state, agent_states.Manual):
-        x, y = agent.state.override_goal
-        if key == ord("w"): y -= 10
-        if key == ord("s"): y += 10
-        if key == ord("a"): x += 10
-        if key == ord("d"): x -= 10
-        agent.state.set_goal((x, y))
-
-    goal = agent.update(center)
+    goal = agent.step(center)
     packet = struct.pack('<HH', goal[0], goal[1])
     # send data to MCU (little endian)
     s.write(packet)
