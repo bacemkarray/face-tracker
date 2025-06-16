@@ -1,18 +1,30 @@
 import math
+import time
+from collections import deque
 
 # Parent class
-class State:
-    def observe(self, face_center):
+class Task:
+    """
+    Abstract base class for execution primitives.
+    """
+    def observe(self, frame_input):
         """
-        Handle perception; return a new State instance to transition, or None.
+        Process perception input (e.g., face_center). 
         """
-        return None
+        pass
 
     def reason(self):
         """
-        Compute and return (x, y) goal.
+        Compute and return a goal (x, y) tuple.
         """
-        return (320, 240)  # default center
+        return (0, 0)
+
+    def is_done(self):
+        """
+        Return True when task is complete.
+        """
+        return True
+
 
 class Tracking(State):
     def __init__(self, lost_threshold=30):
