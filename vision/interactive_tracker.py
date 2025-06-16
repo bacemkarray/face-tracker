@@ -19,6 +19,8 @@ agent = ag.FaceAgent()
 s = serial.Serial(port="COM6",
                   baudrate=115200)
 
+current_task_id = -1
+
 enable_gpu = True  # Set True if running with CUDA
 model_file = "vision/yolov11l-face.pt"  # Path to model file
 show_fps = True  # If True, shows current FPS in top-left corner
@@ -158,7 +160,7 @@ def click_event(event: int, x: int, y: int, flags: int, param) -> None:
             if best_match:
                 selected_object_id, label = best_match
                 print(f"🔵 TRACKING STARTED: {label} (ID {selected_object_id})")
-                agent.add_task({"task": "track"})
+                current_task_id = agent.add_task({"task": "track"})
 
 
 cv2.namedWindow(window_name)
@@ -241,16 +243,19 @@ while cap.isOpened():
         selected_object_id = None
 
     elif key == ord("v"):
-        agent.add_task({"task": "scan", "duration": 5})
+        current_task_id = agent.add_task({"task": "scan", "duration": 5})
         LOGGER.info("SWITCHED TO SCANNING MODE")
 
-    goal = agent.step(center)
-    packet = struct.pack('<HH', goal[0], goal[1])
-    # send data to MCU (little endian)
-    s.write(packet)
-    LOGGER.info(f"Sent {goal}")
+    if current_task_id != -1:
+        goal = agent.step(center)
+        packet = struct.pack('<BHH', current_task_id, goal[0], goal[1])
+        # send data to MCU (little endian)
+        s.write(packet)
+        LOGGER.info(f"Sent {goal}")
 
 cap.release()
 if save_video and vw is not None:
     vw.release()
 cv2.destroyAllWindows()
+
+

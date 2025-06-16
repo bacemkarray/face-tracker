@@ -47,7 +47,8 @@ void setup() {
 }
 
 void loop() {
-  // We expect 4 bytes from Serial per frame (x, y as two‐byte integers):
+  // We expect 5 bytes from Serial per frame 
+  // one byte for the current task, (x, y) as two‐byte integers):
   if (Serial.available() >= 5) {
     uint8_t task_id = Serial.read(); // Get task context
 
@@ -65,13 +66,13 @@ void loop() {
         auto command = controller.update((float)x, (float)y);
         int send_x = command.x;  // “pan” angle
         int send_y = command.y;  // “tilt” angle
-        base.write(send_x);             // yaw/pan stays unchanged
+        base.write(send_x);             // yaw stays unchanged
         elbow.write(send_y); // new elbow “bend” angle
         // shoulder.write(send_y);         // new shoulder pitch angle
         break;
       }
       case 1: {// scan
-        base.write(x);             // yaw/pan stays unchanged
+        base.write(x);             // yaw stays unchanged
         elbow.write(y); // new elbow “bend” angle
         // shoulder.write(send_y);         // new shoulder pitch angle
         break;
