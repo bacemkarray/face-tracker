@@ -7,6 +7,9 @@ class Task:
     """
     Abstract base class for execution primitives.
     """
+    def __init__(self):
+        self.task_id = -1
+
     def observe(self, frame_input):
         """
         Process perception input (e.g., face_center). 
@@ -28,6 +31,8 @@ class Task:
 
 class Track(Task):
     def __init__(self, lost_threshold: int = 30):
+        super().__init__()
+        self.task_id = 0
         self.face_lost_counter = 0
         self.lost_threshold = lost_threshold
         self.current_goal = (320, 240)
@@ -49,6 +54,8 @@ class Track(Task):
 
 class Scan(Task):
     def __init__(self, duration: float):
+        super().__init__()
+        self.task_id = 1
         self.duration = duration
         self.start_time = None
         self.idle_phase = 0.0
@@ -65,14 +72,13 @@ class Scan(Task):
 
     def reason(self):
         # Sweep horizontally with a sine wave
-        self.idle_phase += 0.01
-        sweep_x = int(320 + 250 * math.sin(self.idle_phase))
-        sweep_y = 240
+        self.idle_phase += 0.03
+        sweep_x = int(90 + 80 * math.sin(self.idle_phase))
+        sweep_y = 0
         return (sweep_x, sweep_y)
 
     def is_done(self):
         return (time.time() - self.start_time) >= self.duration
-
 
 class TaskExecutor:
     """
@@ -94,6 +100,7 @@ class TaskExecutor:
         else:
             raise ValueError(f"Unknown task type: {t_type}")
         self.tasks.append(task)
+        return task.task_id
 
     def step(self, frame_input):
         """
