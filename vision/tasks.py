@@ -73,20 +73,6 @@ class Scan(Task):
     def is_done(self):
         return (time.time() - self.start_time) >= self.duration
 
-# class Manual(State):
-#     def __init__(self):
-#         self.override_goal = (320, 240)
-
-#     def observe(self, face_center):
-#         # Ignore vision in manual mode
-#         return None
-
-#     def reason(self):
-#         return self.override_goal
-
-#     def set_goal(self, new_goal):
-#         self.override_goal = new_goal
-
 
 class TaskExecutor:
     """
