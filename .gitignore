@@ -5,3 +5,5 @@ __pycache__/
 # PlatformIO
 hardware/.pio/
 hardware/.vscode/
+
+project_log.md
