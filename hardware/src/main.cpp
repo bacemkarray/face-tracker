@@ -3,7 +3,7 @@
 #include "PDController.h"
 
 Servo base;
-Servo servo_elbow;
+Servo elbow;
 Servo shoulder;
 
 // YOLO model frame dimensions
@@ -37,33 +37,45 @@ void setup() {
 
   // Attach each servo to its pin:
   base.attach(12);         // yaw / pan
-  servo_elbow.attach(19); // elbow “bend”
+  elbow.attach(19); // elbow “bend”
   shoulder.attach(21);         // shoulder pitch
 
   // Initialize to neutral positions:
   base.write(90); // 90 is center, 0 is to the left, 180 is to the right
-  servo_elbow.write(0); // 0 is straight ahead, 90 is up, 180 is all the way back        
+  elbow.write(0); // 0 is straight ahead, 90 is up, 180 is all the way back        
   shoulder.write(45); // 0 all the way back, 45 a good neutral, 90 is straight up
 }
 
 void loop() {
-  // We expect 4 bytes from Serial per frame (face_x, face_y as two‐byte integers):
-  if (Serial.available() >= 4) {
-    // Read face_x (low‐byte, high‐byte)
-     uint16_t face_x = Serial.read();
-    face_x |= ( (uint16_t)Serial.read() << 8 );
+  // We expect 4 bytes from Serial per frame (x, y as two‐byte integers):
+  if (Serial.available() >= 5) {
+    uint8_t task_id = Serial.read(); // Get task context
 
-    // Read face_y (low‐byte, high‐byte)
-    uint16_t face_y = Serial.read();
-    face_y |= ( (uint16_t)Serial.read() << 8 );
+    // Read x (low‐byte, high‐byte)
+    uint16_t x = Serial.read();
+    x |= ( (uint16_t)Serial.read() << 8 );
 
-    // Run PD update. Returns { x = pan, y = tilt }
-    auto command = controller.update((float)face_x, (float)face_y);
-    int send_x = command.x;  // “pan” angle
-    int send_y = command.y;  // “tilt” angle
+    // Read y (low‐byte, high‐byte)
+    uint16_t y = Serial.read();
+    y |= ( (uint16_t)Serial.read() << 8 );
 
-    base.write(send_x);             // yaw/pan stays unchanged
-    servo_elbow.write(send_y); // new elbow “bend” angle
-    // shoulder.write(send_y);         // new shoulder pitch angle
+    switch (task_id) {
+      case 0: {// track
+        // Run PD update. Returns { x = pan, y = tilt }
+        auto command = controller.update((float)x, (float)y);
+        int send_x = command.x;  // “pan” angle
+        int send_y = command.y;  // “tilt” angle
+        base.write(send_x);             // yaw/pan stays unchanged
+        elbow.write(send_y); // new elbow “bend” angle
+        // shoulder.write(send_y);         // new shoulder pitch angle
+        break;
+      }
+      case 1: {// scan
+        base.write(x);             // yaw/pan stays unchanged
+        elbow.write(y); // new elbow “bend” angle
+        // shoulder.write(send_y);         // new shoulder pitch angle
+        break;
+      }
+    }
   }
 }
