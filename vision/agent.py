@@ -1,14 +1,11 @@
-from agent_states import State
+import tasks
 
-class FaceTrackingAgent:
-    def __init__(self, initial_state: State):
-        self.state = initial_state
+class FaceAgent:
+    def __init__(self):
+        self.executor = tasks.TaskExecutor()
 
-    def update(self, face_center):
-        # Observe: allow state to request a transition
-        next_state = self.state.observe(face_center) # Returns none in manual
-        if next_state:
-            self.state = next_state
-        # Reason: compute the next goal
-        goal = self.state.reason()
-        return goal
+    def add_task(self, task_dict):
+        self.executor.add_task(task_dict)
+
+    def step(self, face_center):
+        return self.executor.step(face_center)
