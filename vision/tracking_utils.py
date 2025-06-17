@@ -83,7 +83,7 @@ def draw_dashed_box(im, x1, y1, x2, y2, label, color, txt_color):
             cv2.putText(im, label, (x1 + 5, y1 + 20), 0, 0.7, txt_color, 1, cv2.LINE_AA)
 
 
-def process_detections(frame, detections, selected_id, show_conf, class_names):
+def process_detections(frame, detections, selected_id, show_conf, class_names, face_memory):
     annotator = Annotator(frame)    
     center = None
 
@@ -93,13 +93,18 @@ def process_detections(frame, detections, selected_id, show_conf, class_names):
             continue
 
         x1, y1, x2, y2 = map(int, track[:4])
-        class_id = int(track[6]) if len(track) >= 7 else int(track[5])
-        track_id = int(track[4]) if len(track) == 7 else -1
-        color = colors(track_id, True)
+        face_crop = frame[y1:y2, x1:x2]
+        matched_id = face_memory.match_or_add(face_crop)
+        
+        # pending deletion
+        if matched_id is None:
+            continue
+        
+        color = colors(matched_id, True)
         txt_color = annotator.get_txt_color(color)
-        label = f"{class_names[class_id]} ID {track_id}" + (f" ({float(track[5]):.2f})" if show_conf else "")
+        label = f"ID {matched_id}"
         # if the face being tracked is equal to the face the user selected.
-        if track_id == selected_id:
+        if matched_id == selected_id:
             draw_tracking_scope(frame, (x1, y1, x2, y2), color)
             center = get_center(x1, y1, x2, y2)
             cv2.circle(frame, center, 6, color, -1)
@@ -108,12 +113,12 @@ def process_detections(frame, detections, selected_id, show_conf, class_names):
             pulse_radius = 8 + int(4 * abs(time.time() % 1 - 0.5))
             cv2.circle(frame, center, pulse_radius, color, 2)
 
-            annotator.box_label([x1, y1, x2, y2], label=f"ACTIVE: TRACK {track_id}", color=color)
+            annotator.box_label([x1, y1, x2, y2], label=f"ACTIVE: TRACK {matched_id}", color=color)
         else:
             draw_dashed_box(frame, x1, y1, x2, y2, label, color, txt_color)
     return frame, center
 
-def show_fps(im, fps_counter, fps_display, fps_timer, fps_text):
+def show_fps(im, fps_counter, fps_display, fps_timer):
     fps_counter += 1
     if time.time() - fps_timer >= 1.0:
         fps_display = fps_counter
