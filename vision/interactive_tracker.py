@@ -52,7 +52,7 @@ else:
 
 classes = model.names  # Store model class names
 
-cap = cv2.VideoCapture(0)  # Replace with video path if needed
+cap = cv2.VideoCapture(1)  # Replace with video path if needed
 
 # Initialize video writer
 vw = None
@@ -77,7 +77,7 @@ def click_event(event: int, x: int, y: int, flags: int, param) -> None:
         flags (int): Any relevant flags passed by OpenCV.
         param (Any): Additional parameters (not used).
     """
-    global selected_object_id, results
+    global current_task_id, selected_object_id, results
     if event == cv2.EVENT_LBUTTONDOWN and results is not None:
         detections = results[0].boxes.data if results[0].boxes is not None else []
         if detections is not None:
