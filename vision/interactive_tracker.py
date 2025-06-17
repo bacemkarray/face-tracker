@@ -10,16 +10,17 @@ from ultralytics import YOLO
 from ultralytics.utils import LOGGER
 
 import tracking_utils
-
-
-
 import agent as ag
+import face_memory as fm
+
 agent = ag.FaceAgent()
+face_memory = fm.FaceMemoryManager()
+
+current_task_id = -1
 
 s = serial.Serial(port="COM6",
                   baudrate=115200)
 
-current_task_id = -1
 
 enable_gpu = True  # Set True if running with CUDA
 model_file = "vision/yolov11l-face.pt"  # Path to model file
@@ -52,7 +53,7 @@ else:
 
 classes = model.names  # Store model class names
 
-cap = cv2.VideoCapture(1)  # Replace with video path if needed
+cap = cv2.VideoCapture(0)  # Replace with video path if needed
 
 # Initialize video writer
 vw = None
@@ -64,7 +65,7 @@ selected_object_id = None
 selected_bbox = None
 selected_center = None
 results = None
-
+latest_frame = None
 
 def click_event(event: int, x: int, y: int, flags: int, param) -> None:
     """
@@ -82,7 +83,7 @@ def click_event(event: int, x: int, y: int, flags: int, param) -> None:
         detections = results[0].boxes.data if results[0].boxes is not None else []
         if detections is not None:
             min_area = float("inf")
-            best_match = None
+            best_bbox = None
             for track in detections:
                 track = track.tolist()
                 if len(track) >= 6:
@@ -90,13 +91,15 @@ def click_event(event: int, x: int, y: int, flags: int, param) -> None:
                     if x1 <= x <= x2 and y1 <= y <= y2:
                         area = (x2 - x1) * (y2 - y1)
                         if area < min_area:
-                            class_id = int(track[-1])
-                            track_id = int(track[4]) if len(track) == 7 else -1
                             min_area = area
-                            best_match = (track_id, model.names[class_id])
-            if best_match:
-                selected_object_id, label = best_match
-                print(f"🔵 TRACKING STARTED: {label} (ID {selected_object_id})")
+                            best_bbox = (x1, y1, x2, y2)
+            if best_bbox:
+                x1, y1, x2, y2 = best_bbox
+                crop = im[y1:y2, x1:x2]
+                matched_id = face_memory.match_or_add(crop)
+                if matched_id:
+                    selected_object_id = matched_id
+                    print(f"🔵 TRACKING STARTED: memory (ID {selected_object_id})")
                 current_task_id = agent.add_task({"task": "track"})
 
 
@@ -118,7 +121,8 @@ while cap.isOpened():
         detections=detections,
         selected_id=selected_object_id,
         show_conf=show_conf,
-        class_names=classes)
+        class_names=classes,
+        face_memory=face_memory)
 
     if show_fps:
         fps_counter, fps_display, fps_timer = tracking_utils.show_fps(
