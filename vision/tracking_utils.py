@@ -4,7 +4,6 @@ from typing import Tuple
 import cv2
 
 from ultralytics.utils.plotting import Annotator, colors
-import interactive_tracker as it
 
 
 def get_center(x1: int, y1: int, x2: int, y2: int) -> Tuple[int, int]:
@@ -101,8 +100,8 @@ def process_detections(frame, detections, selected_id, show_conf, class_names):
         label = f"{class_names[class_id]} ID {track_id}" + (f" ({float(track[5]):.2f})" if show_conf else "")
         # if the face being tracked is equal to the face the user selected.
         if track_id == selected_id:
-            it.draw_tracking_scope(frame, (x1, y1, x2, y2), color)
-            center = it.get_center(x1, y1, x2, y2)
+            draw_tracking_scope(frame, (x1, y1, x2, y2), color)
+            center = get_center(x1, y1, x2, y2)
             cv2.circle(frame, center, 6, color, -1)
 
             # Pulsing circle for attention
