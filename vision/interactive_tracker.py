@@ -53,7 +53,7 @@ else:
 
 classes = model.names  # Store model class names
 
-cap = cv2.VideoCapture(1)  # Replace with video path if needed
+cap = cv2.VideoCapture(0)  # Replace with video path if needed
 
 # Initialize video writer
 vw = None
@@ -108,26 +108,6 @@ def extend_line_from_edge(mid_x: int, mid_y: int, direction: str, img_shape: Tup
     if direction == "down":
         return mid_x, h - 1
     return mid_x, mid_y
-
-
-def draw_tracking_scope(im, bbox: tuple, color: tuple) -> None:
-    """
-    Draw tracking scope lines extending from the bounding box to image edges.
-
-    Args:
-        im (ndarray): Image array to draw on.
-        bbox (tuple): Bounding box coordinates (x1, y1, x2, y2).
-        color (tuple): Color in BGR format for drawing.
-    """
-    x1, y1, x2, y2 = bbox
-    mid_top = ((x1 + x2) // 2, y1)
-    mid_bottom = ((x1 + x2) // 2, y2)
-    mid_left = (x1, (y1 + y2) // 2)
-    mid_right = (x2, (y1 + y2) // 2)
-    cv2.line(im, mid_top, extend_line_from_edge(*mid_top, "up", im.shape), color, 2)
-    cv2.line(im, mid_bottom, extend_line_from_edge(*mid_bottom, "down", im.shape), color, 2)
-    cv2.line(im, mid_left, extend_line_from_edge(*mid_left, "left", im.shape), color, 2)
-    cv2.line(im, mid_right, extend_line_from_edge(*mid_right, "right", im.shape), color, 2)
 
 
 def click_event(event: int, x: int, y: int, flags: int, param) -> None:
