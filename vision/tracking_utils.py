@@ -112,3 +112,19 @@ def process_detections(frame, detections, selected_id, show_conf, class_names):
         else:
             draw_dashed_box(frame, x1, y1, x2, y2, label, color, txt_color)
     return frame, center
+
+def show_fps(im, fps_counter, fps_display, fps_timer, fps_text):
+    fps_counter += 1
+    if time.time() - fps_timer >= 1.0:
+        fps_display = fps_counter
+        fps_counter = 0
+        fps_timer = time.time()
+
+    # Draw FPS text with background
+    fps_text = f"FPS: {fps_display}"
+    cv2.putText(im, fps_text, (10, 25), 0, 0.7, (255, 255, 255), 1)
+    (tw, th), bl = cv2.getTextSize(fps_text, 0, 0.7, 2)
+    cv2.rectangle(im, (10 - 5, 25 - th - 5), (10 + tw + 5, 25 + bl), (255, 255, 255), -1)
+    cv2.putText(im, fps_text, (10, 25), 0, 0.7, (104, 31, 17), 1, cv2.LINE_AA)
+
+    return fps_counter, fps_display, fps_timer

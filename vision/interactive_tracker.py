@@ -1,17 +1,17 @@
 # Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license
 # Modified by Bacem Karray for personal use
 
-import time
-from typing import Tuple
-
 import cv2
+import time
+import serial
+import struct
 
 from ultralytics import YOLO
 from ultralytics.utils import LOGGER
+
 import tracking_utils
 
-import serial
-import struct
+
 
 import agent as ag
 agent = ag.FaceAgent()
@@ -118,22 +118,14 @@ while cap.isOpened():
         detections=detections,
         selected_id=selected_object_id,
         show_conf=show_conf,
-        class_names=classes
-    )
+        class_names=classes)
 
     if show_fps:
-        fps_counter += 1
-        if time.time() - fps_timer >= 1.0:
-            fps_display = fps_counter
-            fps_counter = 0
-            fps_timer = time.time()
-
-        # Draw FPS text with background
-        fps_text = f"FPS: {fps_display}"
-        cv2.putText(im, fps_text, (10, 25), 0, 0.7, (255, 255, 255), 1)
-        (tw, th), bl = cv2.getTextSize(fps_text, 0, 0.7, 2)
-        cv2.rectangle(im, (10 - 5, 25 - th - 5), (10 + tw + 5, 25 + bl), (255, 255, 255), -1)
-        cv2.putText(im, fps_text, (10, 25), 0, 0.7, (104, 31, 17), 1, cv2.LINE_AA)
+        fps_counter, fps_display, fps_timer = tracking_utils.show_fps(
+            im, 
+            fps_counter, 
+            fps_display,
+            fps_timer)
 
     cv2.imshow(window_name, im)
     if save_video and vw is not None:
