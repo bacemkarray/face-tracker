@@ -7,21 +7,7 @@ from ultralytics.utils.plotting import Annotator, colors
 import interactive_tracker as it
 
 
-def get_center(x1: int, y1: int, x2: int, y2: int) -> Tuple[int, int]:
-    """
-    Calculate the center point of a bounding box.
 
-    Args:
-        x1 (int): Top-left X coordinate.
-        y1 (int): Top-left Y coordinate.
-        x2 (int): Bottom-right X coordinate.
-        y2 (int): Bottom-right Y coordinate.
-
-    Returns:
-        center_x (int): X-coordinate of the center point.
-        center_y (int): Y-coordinate of the center point.
-    """
-    return (x1 + x2) // 2, (y1 + y2) // 2
 
 
 def extend_line_from_edge(mid_x: int, mid_y: int, direction: str, img_shape: Tuple[int, int, int]) -> Tuple[int, int]:

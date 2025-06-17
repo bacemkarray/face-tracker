@@ -84,32 +84,6 @@ def get_center(x1: int, y1: int, x2: int, y2: int) -> Tuple[int, int]:
     return (x1 + x2) // 2, (y1 + y2) // 2
 
 
-def extend_line_from_edge(mid_x: int, mid_y: int, direction: str, img_shape: Tuple[int, int, int]) -> Tuple[int, int]:
-    """
-    Calculate the endpoint to extend a line from the center toward an image edge.
-
-    Args:
-        mid_x (int): X-coordinate of the midpoint.
-        mid_y (int): Y-coordinate of the midpoint.
-        direction (str): Direction to extend ('left', 'right', 'up', 'down').
-        img_shape (Tuple[int, int, int]): Image shape in (height, width, channels).
-
-    Returns:
-        end_x (int): X-coordinate of the endpoint.
-        end_y (int): Y-coordinate of the endpoint.
-    """
-    h, w = img_shape[:2]
-    if direction == "left":
-        return 0, mid_y
-    if direction == "right":
-        return w - 1, mid_y
-    if direction == "up":
-        return mid_x, 0
-    if direction == "down":
-        return mid_x, h - 1
-    return mid_x, mid_y
-
-
 def click_event(event: int, x: int, y: int, flags: int, param) -> None:
     """
     Handle mouse click events to select an object for focused tracking.
