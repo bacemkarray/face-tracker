@@ -67,23 +67,6 @@ selected_center = None
 results = None
 
 
-def get_center(x1: int, y1: int, x2: int, y2: int) -> Tuple[int, int]:
-    """
-    Calculate the center point of a bounding box.
-
-    Args:
-        x1 (int): Top-left X coordinate.
-        y1 (int): Top-left Y coordinate.
-        x2 (int): Bottom-right X coordinate.
-        y2 (int): Bottom-right Y coordinate.
-
-    Returns:
-        center_x (int): X-coordinate of the center point.
-        center_y (int): Y-coordinate of the center point.
-    """
-    return (x1 + x2) // 2, (y1 + y2) // 2
-
-
 def click_event(event: int, x: int, y: int, flags: int, param) -> None:
     """
     Handle mouse click events to select an object for focused tracking.
