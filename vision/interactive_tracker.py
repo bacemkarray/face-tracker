@@ -9,6 +9,7 @@ import cv2
 from ultralytics import YOLO
 from ultralytics.utils import LOGGER
 from ultralytics.utils.plotting import Annotator, colors
+import tracking_utils
 
 import serial
 import struct
@@ -172,47 +173,17 @@ while cap.isOpened():
     success, im = cap.read()
     if not success:
         break
-
-    results = model.track(im, conf=conf, iou=iou, max_det=max_det, tracker=tracker, **track_args)
-    annotator = Annotator(im)
-    detections = results[0].boxes.data if results[0].boxes is not None else []
-    detected_objects = []
-    center = None
-    for track in detections:
-        track = track.tolist()
-        if len(track) < 6:
-            continue
-        x1, y1, x2, y2 = map(int, track[:4])
-        class_id = int(track[6]) if len(track) >= 7 else int(track[5])
-        track_id = int(track[4]) if len(track) == 7 else -1
-        color = colors(track_id, True)
-        txt_color = annotator.get_txt_color(color)
-        label = f"{classes[class_id]} ID {track_id}" + (f" ({float(track[5]):.2f})" if show_conf else "")
-        # if the face being tracked is equal to the face the user selected.
-        if track_id == selected_object_id:
-            draw_tracking_scope(im, (x1, y1, x2, y2), color)
-            center = get_center(x1, y1, x2, y2)
-            cv2.circle(im, center, 6, color, -1)
-
-            # Pulsing circle for attention
-            pulse_radius = 8 + int(4 * abs(time.time() % 1 - 0.5))
-            cv2.circle(im, center, pulse_radius, color, 2)
-
-            annotator.box_label([x1, y1, x2, y2], label=f"ACTIVE: TRACK {track_id}", color=color)
-        else:
-            # Draw dashed box for other objects
-            for i in range(x1, x2, 10):
-                cv2.line(im, (i, y1), (i + 5, y1), color, 3)
-                cv2.line(im, (i, y2), (i + 5, y2), color, 3)
-            for i in range(y1, y2, 10):
-                cv2.line(im, (x1, i), (x1, i + 5), color, 3)
-                cv2.line(im, (x2, i), (x2, i + 5), color, 3)
-            # Draw label text with background
-            (tw, th), bl = cv2.getTextSize(label, 0, 0.7, 2)
-            cv2.rectangle(im, (x1 + 5 - 5, y1 + 20 - th - 5), (x1 + 5 + tw + 5, y1 + 20 + bl), color, -1)
-            cv2.putText(im, label, (x1 + 5, y1 + 20), 0, 0.7, txt_color, 1, cv2.LINE_AA)
-
     
+    results = model.track(im, conf=conf, iou=iou, max_det=max_det, tracker=tracker, **track_args)
+    detections = results[0].boxes.data if results[0].boxes is not None else []
+    center = None
+    annotated_im, center = tracking_utils.process_detections(
+        frame=im,
+        detections=detections,
+        selected_id=selected_object_id,
+        show_conf=show_conf,
+        class_names=classes
+    )
 
     if show_fps:
         fps_counter += 1
