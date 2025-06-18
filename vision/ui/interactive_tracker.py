@@ -1,3 +1,4 @@
+
 # Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license
 # Modified by Bacem Karray for personal use
 
@@ -71,6 +72,8 @@ selected_center = None
 results = None
 latest_frame = None
 
+
+# move this soon
 def click_event(event: int, x: int, y: int, flags: int, param) -> None:
     """
     Handle mouse click events to select an object for focused tracking.
