@@ -1,11 +1,9 @@
 # Python
 venv/
-__pycache__/
-.vscode/
+**/__pycache__/
+**/.vscode/
 .env
 
-# PlatformIO
 hardware/.pio/
-hardware/.vscode/
 
 project_log.md
