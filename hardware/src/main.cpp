@@ -10,13 +10,16 @@ Servo shoulder;
 static const float FRAME_WIDTH  = 640.0f;
 static const float FRAME_HEIGHT = 480.0f;
 
+// static unsigned long last_time_us = micros();  // microsecond timer
+
+
 // PD gains and other constants:
 static const float  Kp_x       = 0.04f;
 static const float  Kd_x       = 0.01f;
 static const float  Kp_y       = 0.02f;
 static const float  Kd_y       = 0.01f;
 
-// Exponential smoothing factor and other PDController params:
+// PDController params:
 static const float  DEADPX     = 25.0f;   // pixels dead‐zone
 static const float  MAX_STEP_X = 0.4f;    // deg/frame x
 static const float  MAX_STEP_Y = 0.1f;    // deg/frame y
@@ -47,6 +50,12 @@ void setup() {
 }
 
 void loop() {
+  // unsigned long now = micros();
+  // float dt = (now - last_time_us) / 1e3f;   // dt in seconds
+  // last_time_us = now;
+
+
+
   // We expect 5 bytes from Serial per frame 
   // one byte for the current task, (x, y) as two‐byte integers):
   if (Serial.available() >= 5) {
