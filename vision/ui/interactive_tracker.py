@@ -119,7 +119,7 @@ while cap.isOpened():
         break
     
     if show_fps:
-        fps_counter, fps_display, fps_timer = show_fps(
+        fps_counter, fps_display, fps_timer = tracking_utils.show_fps(
             im, 
             fps_counter, 
             fps_display,
