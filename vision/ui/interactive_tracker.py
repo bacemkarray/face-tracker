@@ -154,10 +154,6 @@ while cap.isOpened():
         LOGGER.info("🟢 TRACKING RESET")
         selected_object_id = None
 
-    elif key == ord("v"):
-        current_task_id = agent.add_task({"task": "scan", "duration": 5})
-        LOGGER.info("SWITCHED TO SCANNING MODE")
-
     if current_task_id != -1:
         goal = agent.step(center)
         packet = struct.pack('<BHH', current_task_id, goal[0], goal[1])
