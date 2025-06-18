@@ -13,24 +13,26 @@ class FaceMemoryManager:
         # Convert from BGR (OpenCV) to RGB for face_recognition
         try:
             rgb_crop = cv2.cvtColor(face_crop, cv2.COLOR_BGR2RGB)
-        except Exception:
+        except:
             return None
         # Detect face locations in the crop
-        face_locs = face_recognition.face_locations(rgb_crop)
-        if not face_locs:
+        locs = face_recognition.face_locations(rgb_crop)
+        if not locs:
             return None
         
-        encs = face_recognition.face_encodings(rgb_crop, known_face_locations=face_locs)
+        encs = face_recognition.face_encodings(rgb_crop, known_face_locations=locs)
         if not encs:
             return None
-        
         emb = encs[0]
-        for entry in self.memory:
-            sim = np.dot(entry["embedding"], emb) / (np.linalg.norm(entry["embedding"]) * np.linalg.norm(emb))
-            if sim > self.threshold:
-                entry["last_seen"] = time.time()
-                return entry["id"]
-        
+
+        known_embs = [e["embedding"] for e in self.memory]
+        if known_embs:
+            dists = face_recognition.face_distance(known_embs, emb)
+            best = np.argmin(dists)
+            if dists[best] < self.threshold:
+                self.memory[best]["last_seen"] = time.time()
+                return self.memory[best]["id"]
+
         new_id = self.next_id
         self.memory.append({
             "id": new_id,
