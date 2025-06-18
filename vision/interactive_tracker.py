@@ -16,12 +16,16 @@ import face_memory as fm
 agent = ag.FaceAgent()
 face_memory = fm.FaceMemoryManager()
 
+# for task scheduling
 current_task_id = -1
 
-s = serial.Serial(port="COM6",
-                  baudrate=115200)
+# for face ids
+previous_ids = {}
 
+#
+s = serial.Serial(port="COM6", baudrate=115200)
 
+# config
 enable_gpu = True  # Set True if running with CUDA
 model_file = "vision/yolov11l-face.pt"  # Path to model file
 show_fps = True  # If True, shows current FPS in top-left corner
@@ -32,7 +36,7 @@ video_output_path = "interactive_tracker_output.avi"  # Output video file name
 
 conf = 0.3  # Min confidence for object detection (lower = more detections, possibly more false positives)
 iou = 0.3  # IoU threshold for NMS (higher = less overlap allowed)
-max_det = 20  # Maximum objects per image (increase for crowded scenes)
+max_det = 5  # Maximum objects per image (increase for crowded scenes)
 
 tracker = "bytetrack.yaml"  # Tracker config: 'bytetrack.yaml', 'botsort.yaml', etc.
 track_args = {
@@ -53,7 +57,7 @@ else:
 
 classes = model.names  # Store model class names
 
-cap = cv2.VideoCapture(0)  # Replace with video path if needed
+cap = cv2.VideoCapture(1)  # Replace with video path if needed
 
 # Initialize video writer
 vw = None
@@ -109,9 +113,17 @@ cv2.setMouseCallback(window_name, click_event)
 fps_counter, fps_timer, fps_display = 0, time.time(), 0
 
 while cap.isOpened():
+    start = time.time()
     success, im = cap.read()
     if not success:
         break
+    
+    if show_fps:
+        fps_counter, fps_display, fps_timer = tracking_utils.show_fps(
+            im, 
+            fps_counter, 
+            fps_display,
+            fps_timer)
     
     results = model.track(im, conf=conf, iou=iou, max_det=max_det, tracker=tracker, **track_args)
     detections = results[0].boxes.data if results[0].boxes is not None else []
@@ -120,16 +132,10 @@ while cap.isOpened():
         frame=im,
         detections=detections,
         selected_id=selected_object_id,
-        show_conf=show_conf,
-        class_names=classes,
-        face_memory=face_memory)
+        face_memory=face_memory, 
+        frame_idx=fps_counter,
+        previous_ids=previous_ids)
 
-    if show_fps:
-        fps_counter, fps_display, fps_timer = tracking_utils.show_fps(
-            im, 
-            fps_counter, 
-            fps_display,
-            fps_timer)
 
     cv2.imshow(window_name, im)
     if save_video and vw is not None:
@@ -154,7 +160,7 @@ while cap.isOpened():
         packet = struct.pack('<BHH', current_task_id, goal[0], goal[1])
         # send data to MCU (little endian)
         s.write(packet)
-        LOGGER.info(f"Sent {goal}")
+        # LOGGER.info(f"Sent {goal}")
 
 cap.release()
 if save_video and vw is not None:
