@@ -1,6 +1,8 @@
 # Python
 venv/
 __pycache__/
+.vscode/
+.env
 
 # PlatformIO
 hardware/.pio/
