@@ -83,20 +83,43 @@ def draw_dashed_box(im, x1, y1, x2, y2, label, color, txt_color):
             cv2.putText(im, label, (x1 + 5, y1 + 20), 0, 0.7, txt_color, 1, cv2.LINE_AA)
 
 
-def process_detections(frame, detections, selected_id, show_conf, class_names, face_memory):
+def show_fps(im, fps_counter, fps_display, fps_timer):
+    fps_counter += 1
+    if time.time() - fps_timer >= 1.0:
+        fps_display = fps_counter
+        fps_counter = 0
+        fps_timer = time.time()
+
+    # Draw FPS text with background
+    fps_text = f"FPS: {fps_display}"
+    cv2.putText(im, fps_text, (10, 25), 0, 0.7, (255, 255, 255), 1)
+    (tw, th), bl = cv2.getTextSize(fps_text, 0, 0.7, 2)
+    cv2.rectangle(im, (10 - 5, 25 - th - 5), (10 + tw + 5, 25 + bl), (255, 255, 255), -1)
+    cv2.putText(im, fps_text, (10, 25), 0, 0.7, (104, 31, 17), 1, cv2.LINE_AA)
+
+    return fps_counter, fps_display, fps_timer
+
+
+def process_detections(frame, detections, selected_id, face_memory, frame_idx, previous_ids):
     annotator = Annotator(frame)    
     center = None
-
     for track in detections:
         track = track.tolist()
         if len(track) < 6:
             continue
 
         x1, y1, x2, y2 = map(int, track[:4])
+        track_id = int(track[4]) if len(track) >= 7 else -1
         face_crop = frame[y1:y2, x1:x2]
-        matched_id = face_memory.match_or_add(face_crop)
+
+        if frame_idx % 30 == 0:
+            matched_id = face_memory.match_or_add(face_crop)
+            if matched_id is not None:
+                previous_ids[track_id] = matched_id
+
+        else:
+            matched_id = previous_ids.get(track_id, None)
         
-        # pending deletion
         if matched_id is None:
             continue
         
@@ -117,19 +140,3 @@ def process_detections(frame, detections, selected_id, show_conf, class_names, f
         else:
             draw_dashed_box(frame, x1, y1, x2, y2, label, color, txt_color)
     return frame, center
-
-def show_fps(im, fps_counter, fps_display, fps_timer):
-    fps_counter += 1
-    if time.time() - fps_timer >= 1.0:
-        fps_display = fps_counter
-        fps_counter = 0
-        fps_timer = time.time()
-
-    # Draw FPS text with background
-    fps_text = f"FPS: {fps_display}"
-    cv2.putText(im, fps_text, (10, 25), 0, 0.7, (255, 255, 255), 1)
-    (tw, th), bl = cv2.getTextSize(fps_text, 0, 0.7, 2)
-    cv2.rectangle(im, (10 - 5, 25 - th - 5), (10 + tw + 5, 25 + bl), (255, 255, 255), -1)
-    cv2.putText(im, fps_text, (10, 25), 0, 0.7, (104, 31, 17), 1, cv2.LINE_AA)
-
-    return fps_counter, fps_display, fps_timer
