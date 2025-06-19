@@ -136,7 +136,6 @@ while cap.isOpened():
         detections=detections,
         selected_id=selected_object_id,
         face_memory=face_memory, 
-        frame_idx=fps_counter,
         previous_ids=previous_ids)
 
 
