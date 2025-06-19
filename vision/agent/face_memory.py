@@ -1,16 +1,14 @@
 import numpy as np
 import time
 import cv2
-import torch # Needed so the CUDAExecutionProvider can be created (access the CUDA that was installed with PyTorch). 
-             # Can also use onnxruntime.preload_dlls() before starting the session.
 import onnxruntime as ort
 from sklearn.metrics.pairwise import cosine_similarity
-from pathlib import Path
 
 class MobileFaceEmbedder:
     def __init__(self):
         model_path = str("C:/Users/bkarr/.insightface/models/antelopev2/antelopev2/1k3d68.onnx")
         
+        ort.preload_dlls() # Needed so the CUDAExecutionProvider can be created (access the CUDA that was installed with PyTorch). 
         self.session = ort.InferenceSession(
             model_path,
             providers=["CUDAExecutionProvider"]
@@ -18,11 +16,11 @@ class MobileFaceEmbedder:
         self.input_name = self.session.get_inputs()[0].name
 
     def preprocess(self, face_crop_bgr):
-        img = cv2.resize(face_crop_bgr, (112, 112))
+        img = cv2.resize(face_crop_bgr, (192, 192))
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB).astype(np.float32)
         img = (img / 255.0 - 0.5) / 0.5  # Normalize to [-1, 1]
         img = np.transpose(img, (2, 0, 1))  # HWC → CHW
-        img = np.expand_dims(img, axis=0).astype(np.float32)  # (1, 3, 112, 112)
+        img = np.expand_dims(img, axis=0).astype(np.float32)  # (1, 3, 192, 192)
         return img
 
     def get_embedding(self, face_crop_bgr):
