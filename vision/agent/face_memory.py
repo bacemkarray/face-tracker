@@ -6,7 +6,7 @@ import torch # Needed so the CUDAExecutionProvider can be created (access the CU
 import onnxruntime as ort
 from sklearn.metrics.pairwise import cosine_similarity
 
-class MobileFaceEmbedder:
+class FaceEmbedder:
     def __init__(self):
         model_path = str("C:/Users/bkarr/.insightface/models/antelopev2/antelopev2/1k3d68.onnx")
         
@@ -35,7 +35,7 @@ class FaceMemory:
         self.memory = []
         self.next_id = 1
         self.threshold = threshold
-        self.embedder = MobileFaceEmbedder()
+        self.embedder = FaceEmbedder()
 
     def match_or_add(self, face_crop):
         try:
