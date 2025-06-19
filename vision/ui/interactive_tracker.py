@@ -14,16 +14,20 @@ from vision.ui import tracking_utils
 from vision.agent.agent import FaceAgent
 from vision.agent.face_memory import FaceMemory
 
+from vision.core.instruction_parser import parse_instruction   
+
 agent = FaceAgent()
 face_memory = FaceMemory()
 
-# for task scheduling
-current_task_id = -1
+command = input("💬 Give command to agent: ")
+for task in parse_instruction(command):
+    # If using Pydantic v2: task.model_dump(), else task.dict()
+    agent.add_task(task.model_dump())  
 
 # for face ids
 previous_ids = {}
 
-#
+# serial comms
 s = serial.Serial(port="COM6", baudrate=115200)
 
 # config
@@ -154,7 +158,7 @@ while cap.isOpened():
         LOGGER.info("🟢 TRACKING RESET")
         selected_object_id = None
 
-    if current_task_id != -1:
+    if agent.executor.tasks:
         goal = agent.step(center)
         packet = struct.pack('<BHH', current_task_id, goal[0], goal[1])
         # send data to MCU (little endian)
