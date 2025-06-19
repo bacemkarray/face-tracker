@@ -38,12 +38,10 @@ class FaceMemory:
         self.embedder = FaceEmbedder()
 
     def match_or_add(self, face_crop):
-        try:
-            emb = self.embedder.get_embedding(face_crop)
-        except:
-            return None
+        emb = self.embedder.get_embedding(face_crop)
 
         known_embs = [entry["embedding"] for entry in self.memory]
+        print(known_embs)
         if known_embs:
             sims = cosine_similarity([emb], known_embs)[0]
             best_idx = np.argmax(sims)
@@ -51,12 +49,12 @@ class FaceMemory:
                 self.memory[best_idx]["last_seen"] = time.time()
                 return self.memory[best_idx]["id"]
 
-        new_id = self.next_id
+        _id = self.next_id
         self.memory.append({
-            "id": new_id,
+            "id": _id,
             "embedding": emb,
-            "label": f"unknown_{new_id}",
+            "label": f"unknown_{_id}",
             "last_seen": time.time()
         })
         self.next_id += 1
-        return new_id
+        return _id

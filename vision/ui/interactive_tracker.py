@@ -47,7 +47,7 @@ track_args = {
 
 window_name = "Ultralytics YOLO Interactive Tracking"  # Output window name
 
-LOGGER.info("🚀 Initializing model...")
+LOGGER.info("Initializing model...")
 if enable_gpu:
     LOGGER.info("Using GPU...")
     model = YOLO(model_file)
