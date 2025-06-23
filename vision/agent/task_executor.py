@@ -31,7 +31,7 @@ class TaskExecutor:
         """
         if not self.tasks:
             # No tasks: default center
-            return (320, 240)
+            return
 
         current = self.tasks[0]
         current.observe(frame_input)
