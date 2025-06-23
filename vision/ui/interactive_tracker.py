@@ -21,8 +21,7 @@ face_memory = FaceMemory()
 
 command = input("💬 Give command to agent: ")
 for task in parse_instruction(command):
-    # If using Pydantic v2: task.model_dump(), else task.dict()
-    agent.add_task(task.model_dump())  
+    agent.add_task(task)  
 
 # for face ids
 previous_ids = {}
