@@ -11,8 +11,8 @@ from ultralytics import YOLO
 from ultralytics.utils import LOGGER
 
 from vision.ui import tracking_utils 
-from vision.agent.agent import FaceAgent
-from vision.agent.face_memory import FaceMemory
+from vision.oldAgent.agent import FaceAgent
+from vision.oldAgent.face_memory import FaceMemory
 
 from vision.core.instruction_parser import parse_instruction   
 

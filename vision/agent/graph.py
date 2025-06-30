@@ -1,61 +1,65 @@
 from langchain_core.messages import SystemMessage
 from langchain_openai import ChatOpenAI
+from pydantic import BaseModel, Field
+from typing import List, Literal, Optional
+from typing_extensions import TypedDict
 
 from langgraph.graph import START, StateGraph, MessagesState
-from langgraph.prebuilt import tools_condition, ToolNode
 
-def add(a: int, b: int) -> int:
-    """Adds a and b.
+# -------- SCHEMA -------- #
+class Task(TypedDict):
+    task: Literal["search", "track"]
+    duration: float = None
+    target: str = None
 
-    Args:
-        a: first int
-        b: second int
-    """
-    return a + b
+class TaskPlannerState(TypedDict):
+    instruction: str
+    tasks: Optional[Task]  # Will hold the parsed list of tasks
 
-def multiply(a: int, b: int) -> int:
-    """Multiplies a and b.
 
-    Args:
-        a: first int
-        b: second int
-    """
-    return a * b
+llm = ChatOpenAI(model="gpt-4o").with_structured_output(method="json_mode")
 
-def divide(a: int, b: int) -> float:
-    """Divide a and b.
+prompt_template = """
+You are a task planner for a robotic arm. Convert the following instruction into a list of task objects in JSON format.
 
-    Args:
-        a: first int
-        b: second int
-    """
-    return a / b
+Each task should follow this format:
+{{
+  "task": "search" or "track",
+  "duration": optional float (seconds),
+  "target": optional string (person label like "dad" or "unknown_3") or null if not applicable
+}}
 
-tools = [add, multiply, divide]
+Examples:
 
-# Define LLM with bound tools
-llm = ChatOpenAI(model="gpt-4o")
-llm_with_tools = llm.bind_tools(tools)
+Input: search for 10 seconds
+Output: [
+  {{"task": "search", "target": null, "duration": 5}},
+]
 
-# System message
-sys_msg = SystemMessage(content="You are a helpful assistant tasked with writing performing arithmetic on a set of inputs.")
+Input: follow dad for 10 seconds
+Output: [
+  {{"task": "track", "target": "dad", "duration": 10}}
+]
 
-# Node
-def assistant(state: MessagesState):
-   return {"messages": [llm_with_tools.invoke([sys_msg] + state["messages"])]}
+Input: {instruction}
+Output:
+"""
+
+
+def generate_task(state : TaskPlannerState):
+    instruction = state["instruction"]
+    prompt = prompt_template.format(instruction=instruction)
+    system_message = SystemMessage(content=prompt)
+    response = llm.invoke([system_message])
+    return {"tasks": response}
+
 
 # Build graph
-builder = StateGraph(MessagesState)
-builder.add_node("assistant", assistant)
-builder.add_node("tools", ToolNode(tools))
-builder.add_edge(START, "assistant")
-builder.add_conditional_edges(
-    "assistant",
-    # If the latest message (result) from assistant is a tool call -> tools_condition routes to tools
-    # If the latest message (result) from assistant is a not a tool call -> tools_condition routes to END
-    tools_condition,
-)
-builder.add_edge("tools", "assistant")
+builder = StateGraph(TaskPlannerState)
+builder.add_node("generate_tasks", generate_task)
+
+builder.add_edge(START, "generate_tasks")
+builder.set_entry_point("generate_tasks")
 
 # Compile graph
 graph = builder.compile()
