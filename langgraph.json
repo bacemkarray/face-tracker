@@ -1,0 +1,8 @@
+{
+  "dependencies": ["."],
+  "graphs": {
+    "research-project-agent": "./vision/agent/graph.py:graph"
+  },
+  "env": ".env",
+  "image_distro": "wolfi"
+}
