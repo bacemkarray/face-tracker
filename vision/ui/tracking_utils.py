@@ -112,7 +112,7 @@ def process_detections(frame, detections, selected_id, face_memory, previous_ids
         track_id = int(track[4]) if len(track) >= 7 else -1
         face_crop = frame[y1:y2, x1:x2]
 
-        matched_id = face_memory.match_or_add(face_crop)
+        matched_id = face_memory.match_or_add(frame, (x1, y1, x2, y2))
         if matched_id is not None:
             previous_ids[track_id] = matched_id
 
