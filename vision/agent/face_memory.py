@@ -1,60 +1,70 @@
-import numpy as np
 import time
 import cv2
-import torch # Needed so the CUDAExecutionProvider can be created (access the CUDA that was installed with PyTorch). 
-             # Can also use onnxruntime.preload_dlls() before starting the session.
-import onnxruntime as ort
+import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
+from insightface.app import FaceAnalysis
+
+# Necessary to ensure the YOLO box being fed in matches with the box detected by FaceAnalysis.
+# Needed until I decide to isolate the face recognition from the rest of the InsightFace pipeline. 
+def compute_iou(boxA, boxB):
+    xA = max(boxA[0], boxB[0]);  yA = max(boxA[1], boxB[1])
+    xB = min(boxA[2], boxB[2]);  yB = min(boxA[3], boxB[3])
+    inter = max(0, xB - xA) * max(0, yB - yA)
+    areaA = (boxA[2]-boxA[0])*(boxA[3]-boxA[1])
+    areaB = (boxB[2]-boxB[0])*(boxB[3]-boxB[1])
+    return inter / float(areaA + areaB - inter + 1e-6)
 
 class FaceEmbedder:
-    def __init__(self):
-        model_path = str("C:/Users/bkarr/.insightface/models/antelopev2/antelopev2/1k3d68.onnx")
-        
-        self.session = ort.InferenceSession(
-            model_path,
-            providers=["CUDAExecutionProvider"]
-        )
-        self.input_name = self.session.get_inputs()[0].name
+    def __init__(self, model_name: str = "buffalo_l"):
+        # loads SCRFD-500MF detector + MobileFaceNet recognizer
+        self.app = FaceAnalysis(name=model_name, provider=['CUDAExecutionProvider'])
+        self.app.prepare(ctx_id=0, det_size=(640, 640))
 
-    def preprocess(self, face_crop_bgr):
-        img = cv2.resize(face_crop_bgr, (192, 192))
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB).astype(np.float32)
-        img = (img / 255.0 - 0.5) / 0.5  # Normalize to [-1, 1]
-        img = np.transpose(img, (2, 0, 1))  # HWC to CHW
-        img = np.expand_dims(img, axis=0).astype(np.float32)  # (1, 3, 192, 192)
-        return img
+    def get_embedding_on_frame(self, full_frame_bgr: np.ndarray, target_bbox: tuple[int,int,int,int]) -> np.ndarray | None:
+        rgb = cv2.cvtColor(full_frame_bgr, cv2.COLOR_BGR2RGB)
+        faces = self.app.get(rgb)
+        if not faces:
+            return None
 
-    def get_embedding(self, face_crop_bgr):
-        img = self.preprocess(face_crop_bgr)
-        emb = self.session.run(None, {self.input_name: img})[0]
-        return emb[0]  # 512-dim vector
+        # pick the detected face whose bbox best overlaps the YOLO bbox
+        best_face, best_iou = None, 0.0
+        for f in faces:
+            x1,y1,x2,y2 = map(int, f.bbox)
+            iou = compute_iou(target_bbox, (x1,y1,x2,y2))
+            if iou > best_iou:
+                best_iou, best_face = iou, f
+
+        if best_face is None or best_iou < 0.5:  # tweak threshold as needed
+            return None
+
+        return best_face.embedding
 
 
 class FaceMemory:
-    def __init__(self, threshold=0.6):
-        self.memory = []
+    def __init__(self, threshold: float = 0.4, model_name: str = "buffalo_l"):
+        self.memory: list[dict] = []
         self.next_id = 1
         self.threshold = threshold
-        self.embedder = FaceEmbedder()
+        self.embedder = FaceEmbedder(model_name)
 
-    def match_or_add(self, face_crop):
-        emb = self.embedder.get_embedding(face_crop)
+    def match_or_add(self, full_frame: np.ndarray, target_bbox: tuple[int,int,int,int]) -> int | None:
+        emb = self.embedder.get_embedding_on_frame(full_frame, target_bbox)
+        if emb is None:
+            return None
 
-        known_embs = [entry["embedding"] for entry in self.memory]
-        print(known_embs)
-        if known_embs:
-            sims = cosine_similarity([emb], known_embs)[0]
-            best_idx = np.argmax(sims)
-            if sims[best_idx] > self.threshold:
-                self.memory[best_idx]["last_seen"] = time.time()
-                return self.memory[best_idx]["id"]
+        known = [e["embedding"] for e in self.memory]
+        if known:
+            sims = cosine_similarity([emb], known)[0]
+            best = int(np.argmax(sims))
+            if sims[best] > self.threshold:
+                self.memory[best]["last_seen"] = time.time()
+                return self.memory[best]["id"]
 
-        _id = self.next_id
+        new_id = self.next_id
         self.memory.append({
-            "id": _id,
+            "id": new_id,
             "embedding": emb,
-            "label": f"unknown_{_id}",
             "last_seen": time.time()
         })
         self.next_id += 1
-        return _id
+        return new_id
