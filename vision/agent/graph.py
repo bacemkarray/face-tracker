@@ -54,11 +54,10 @@ def generate_task(state : TaskPlannerState):
     return {"tasks": response}
 
 
-# Build graph
-builder = StateGraph(TaskPlannerState)
-builder.add_node("generate_tasks", generate_task)
-
-builder.add_edge(START, "generate_tasks")
-
-# Compile graph
-graph = builder.compile()
+# Build and compile graph
+graph = (
+    StateGraph(TaskPlannerState)
+    .add_node("generate_tasks", generate_task)
+    .add_edge(START, "generate_tasks")
+    .compile()
+)
