@@ -59,7 +59,7 @@ builder = StateGraph(TaskPlannerState)
 builder.add_node("generate_tasks", generate_task)
 
 builder.add_edge(START, "generate_tasks")
-builder.set_entry_point("generate_tasks")
+
 
 # Compile graph
 graph = builder.compile()
