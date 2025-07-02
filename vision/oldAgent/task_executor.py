@@ -1,4 +1,4 @@
-from .tasks import Scan, Track
+from .tasks import Search, Track
 from collections import deque
 
 
@@ -11,12 +11,12 @@ class TaskExecutor:
 
     def add_task(self, task_dict: dict):
         """
-        Accepts a dict like {"mode": "scan", "duration": 5}.
+        Accepts a dict like {"mode": "search", "target": null, "duration": 15}.
         """
         t_type = task_dict.get("mode")
         if t_type == "search":
             duration = float(task_dict.get("duration", 5)) # default 5 seconds
-            task = Scan(duration)
+            task = Search(duration)
         elif t_type == "track":
             task = Track()
         else:

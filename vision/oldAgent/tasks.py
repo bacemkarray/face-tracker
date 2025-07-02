@@ -51,7 +51,7 @@ class Track(Task):
         return self.face_lost_counter >= self.lost_threshold
 
 
-class Scan(Task):
+class Search(Task):
     def __init__(self, duration: float):
         super().__init__()
         self.task_id = 1
