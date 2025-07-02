@@ -14,7 +14,7 @@ class Task(TypedDict):
 
 class TaskPlannerState(TypedDict):
     instruction: str
-    tasks: Optional[Task]  # Will hold the parsed list of tasks
+    tasks: Optional[List[Task]]  # Will hold the parsed list of tasks
 
 
 llm = ChatOpenAI(model="gpt-4o").with_structured_output(method="json_mode")
@@ -59,7 +59,6 @@ builder = StateGraph(TaskPlannerState)
 builder.add_node("generate_tasks", generate_task)
 
 builder.add_edge(START, "generate_tasks")
-
 
 # Compile graph
 graph = builder.compile()
