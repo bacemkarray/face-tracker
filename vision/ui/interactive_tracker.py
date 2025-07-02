@@ -4,7 +4,7 @@
 
 import cv2
 import time
-import serial
+from serial import Serial
 import struct
 
 from ultralytics import YOLO
@@ -24,7 +24,7 @@ current_task_id = -1
 previous_ids = {}
 
 #
-s = serial.Serial(port="COM6", baudrate=115200)
+s = Serial(port="COM6", baudrate=115200)
 
 # config
 enable_gpu = True  # Set True if running with CUDA
