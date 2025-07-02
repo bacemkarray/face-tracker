@@ -29,7 +29,7 @@ face_memory = FaceMemory()
 
 command = input("Give a command that you would like to run: ")
 new_task = graph.invoke({"instruction": command})
-agent.add_task(new_task)
+agent.add_task(new_task['tasks'])
 
 
 # for face ids
