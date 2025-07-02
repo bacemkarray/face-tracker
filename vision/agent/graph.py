@@ -13,21 +13,21 @@ You are a task planner for a robotic arm. Convert the following instruction into
 
 Each task should follow this format:
 {{
-  "task": "search" or "track",
+  "mode": "search" or "track",
   "duration": optional float (seconds),
   "target": optional string (person label like "dad" or "unknown_3") or null if not applicable
 }}
 
 Examples:
 
-Input: search for 10 seconds
+Input: search for 15 seconds
 Output: [
-  {{"task": "search", "target": null, "duration": 5}},
+  {{"mode": "search", "target": null, "duration": 15}},
 ]
 
 Input: follow dad for 10 seconds
 Output: [
-  {{"task": "track", "target": "dad", "duration": 10}}
+  {{"mode": "track", "target": "dad", "duration": 10}}
 ]
 
 Input: {instructions}
@@ -37,7 +37,7 @@ Output:
 
 # -------- SCHEMA -------- #
 class Task(TypedDict):
-  task: Literal["search", "track"] # Only temporarily strict. Eventually, agent will decide what mode it should execute.
+  mode: Literal["search", "track"] # Only temporarily strict. Eventually, agent will decide what mode it should execute.
   duration: float = None
   target: str = None
   
@@ -45,7 +45,7 @@ class InputState(TypedDict):
   instructions: str
 
 class OutputState(TypedDict):
-  tasks: Optional[List[Task]]
+  task: Optional[Task]
 
 class OverallState(InputState, OutputState):
   pass
@@ -57,7 +57,7 @@ def generate_task(state : InputState) -> OutputState:
     prompt = prompt_template.format(instructions=instructions)
     system_message = SystemMessage(content=prompt)
     response = llm.invoke([system_message])
-    return {"tasks": response}
+    return {"task": response}
 
 
 # -------- GRAPH -------- #
