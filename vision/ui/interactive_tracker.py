@@ -91,29 +91,29 @@ def click_event(event: int, x: int, y: int, flags: int, param) -> None:
         flags (int): Any relevant flags passed by OpenCV.
         param (Any): Additional parameters (not used).
     """
-    global current_task_id, selected_object_id, results
-    if event == cv2.EVENT_LBUTTONDOWN and results is not None:
-        detections = results[0].boxes.data if results[0].boxes is not None else []
-        if detections is not None:
-            min_area = float("inf")
-            best_bbox = None
-            for track in detections:
-                track = track.tolist()
-                if len(track) >= 6:
-                    x1, y1, x2, y2 = map(int, track[:4])
-                    if x1 <= x <= x2 and y1 <= y <= y2:
-                        area = (x2 - x1) * (y2 - y1)
-                        if area < min_area:
-                            min_area = area
-                            best_bbox = (x1, y1, x2, y2)
-            if best_bbox:
-                x1, y1, x2, y2 = best_bbox
-                # crop = im[y1:y2, x1:x2]
-                matched_id = face_memory.match_or_add(im, best_bbox)
-                if matched_id:
-                    selected_object_id = matched_id
-                    print(f"🔵 TRACKING STARTED: memory (ID {selected_object_id})")
-                current_task_id = task_executor.add_task({"task": "track"})
+    pass
+    # global current_task_id, selected_object_id, results
+    # if event == cv2.EVENT_LBUTTONDOWN and results is not None:
+    #     detections = results[0].boxes.data if results[0].boxes is not None else []
+    #     if detections is not None:
+    #         min_area = float("inf")
+    #         best_bbox = None
+    #         for track in detections:
+    #             track = track.tolist()
+    #             if len(track) >= 6:
+    #                 x1, y1, x2, y2 = map(int, track[:4])
+    #                 if x1 <= x <= x2 and y1 <= y <= y2:
+    #                     area = (x2 - x1) * (y2 - y1)
+    #                     if area < min_area:
+    #                         min_area = area
+    #                         best_bbox = (x1, y1, x2, y2)
+    #         if best_bbox:
+    #             x1, y1, x2, y2 = best_bbox
+    #             # crop = im[y1:y2, x1:x2]
+    #             matched_id = face_memory.match_or_add(im, best_bbox)
+    #             if matched_id:
+    #                 selected_object_id = matched_id
+    #                 print(f"🔵 TRACKING STARTED: memory (ID {selected_object_id})")
 
 
 cv2.namedWindow(window_name)
@@ -154,7 +154,7 @@ while cap.isOpened():
     key = cv2.waitKey(1) & 0xFF
     if key == ord("q"):
         break
-    
+
     if current_task_id:
         goal = task_executor.step(center)
         packet = struct.pack('<BHH', current_task_id, goal[0], goal[1])
