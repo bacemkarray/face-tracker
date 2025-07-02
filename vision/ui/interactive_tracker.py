@@ -154,11 +154,7 @@ while cap.isOpened():
     key = cv2.waitKey(1) & 0xFF
     if key == ord("q"):
         break
-
-    elif key == ord("c"):
-        LOGGER.info("🟢 TRACKING RESET")
-        selected_object_id = None
-
+    
     if current_task_id:
         goal = task_executor.step(center)
         packet = struct.pack('<BHH', current_task_id, goal[0], goal[1])
