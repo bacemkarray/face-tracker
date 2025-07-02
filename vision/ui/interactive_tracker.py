@@ -14,14 +14,22 @@ from vision.ui import tracking_utils
 from vision.oldAgent.agent import FaceAgent
 from vision.oldAgent.face_memory import FaceMemory
 
+#DEPRECATED
 from vision.core.instruction_parser import parse_instruction   
+
+from vision.agent import graph
 
 agent = FaceAgent()
 face_memory = FaceMemory()
 
-command = input("💬 Give command to agent: ")
-for task in parse_instruction(command):
-    agent.add_task(task)  
+#DEPRECATED
+# command = input("💬 Give command to agent: ")
+# for task in parse_instruction(command):
+#     agent.add_task(task)  
+
+command = input("Give a command that you would like to run: ")
+graph.invoke(command)
+
 
 # for face ids
 previous_ids = {}
