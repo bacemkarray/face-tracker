@@ -11,19 +11,20 @@ from ultralytics import YOLO
 from ultralytics.utils import LOGGER
 
 from vision.ui import tracking_utils 
-from vision.oldAgent.agent import FaceAgent
+from vision.oldAgent.task_executor import TaskExecutor
+
 from vision.oldAgent.face_memory import FaceMemory
 
 
 from vision.agent import graph
 
-agent = FaceAgent()
+task_executor = TaskExecutor()
 face_memory = FaceMemory()
 
-command = input("Give a command that you would like to run: ")
-new_task = graph.invoke({"instruction": command})
-agent.add_task(new_task['tasks'])
-
+user_input = input("Give a command that you would like to run: ")
+command = graph.invoke({"instructions": user_input}) # currently outputs a task to do
+task_executor.add_task(command['task'])
+current_task_id = 1
 
 # for face ids
 previous_ids = {}
@@ -112,7 +113,7 @@ def click_event(event: int, x: int, y: int, flags: int, param) -> None:
                 if matched_id:
                     selected_object_id = matched_id
                     print(f"🔵 TRACKING STARTED: memory (ID {selected_object_id})")
-                current_task_id = agent.add_task({"task": "track"})
+                current_task_id = task_executor.add_task({"task": "track"})
 
 
 cv2.namedWindow(window_name)
@@ -158,8 +159,8 @@ while cap.isOpened():
         LOGGER.info("🟢 TRACKING RESET")
         selected_object_id = None
 
-    if agent.executor.tasks:
-        goal = agent.step(center)
+    if current_task_id:
+        goal = task_executor.step(center)
         packet = struct.pack('<BHH', current_task_id, goal[0], goal[1])
         # send data to MCU (little endian)
         s.write(packet)
