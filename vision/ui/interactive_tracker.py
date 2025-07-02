@@ -4,7 +4,7 @@
 
 import cv2
 import time
-import serial
+from serial import Serial
 import struct
 
 from ultralytics import YOLO
@@ -34,8 +34,8 @@ graph.invoke(command)
 # for face ids
 previous_ids = {}
 
-# serial comms
-s = serial.Serial(port="COM6", baudrate=115200)
+#
+s = Serial(port="COM6", baudrate=115200)
 
 # config
 enable_gpu = True  # Set True if running with CUDA
@@ -58,7 +58,7 @@ track_args = {
 
 window_name = "Ultralytics YOLO Interactive Tracking"  # Output window name
 
-LOGGER.info("🚀 Initializing model...")
+LOGGER.info("Initializing model...")
 if enable_gpu:
     LOGGER.info("Using GPU...")
     model = YOLO(model_file)
@@ -113,8 +113,8 @@ def click_event(event: int, x: int, y: int, flags: int, param) -> None:
                             best_bbox = (x1, y1, x2, y2)
             if best_bbox:
                 x1, y1, x2, y2 = best_bbox
-                crop = im[y1:y2, x1:x2]
-                matched_id = face_memory.match_or_add(crop)
+                # crop = im[y1:y2, x1:x2]
+                matched_id = face_memory.match_or_add(im, best_bbox)
                 if matched_id:
                     selected_object_id = matched_id
                     print(f"🔵 TRACKING STARTED: memory (ID {selected_object_id})")
@@ -147,7 +147,6 @@ while cap.isOpened():
         detections=detections,
         selected_id=selected_object_id,
         face_memory=face_memory, 
-        frame_idx=fps_counter,
         previous_ids=previous_ids)
 
 

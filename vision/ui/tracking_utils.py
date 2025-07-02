@@ -100,7 +100,7 @@ def show_fps(im, fps_counter, fps_display, fps_timer):
     return fps_counter, fps_display, fps_timer
 
 
-def process_detections(frame, detections, selected_id, face_memory, frame_idx, previous_ids):
+def process_detections(frame, detections, selected_id, face_memory, previous_ids):
     annotator = Annotator(frame)    
     center = None
     for track in detections:
@@ -112,10 +112,9 @@ def process_detections(frame, detections, selected_id, face_memory, frame_idx, p
         track_id = int(track[4]) if len(track) >= 7 else -1
         face_crop = frame[y1:y2, x1:x2]
 
-        if frame_idx % 30 == 0:
-            matched_id = face_memory.match_or_add(face_crop)
-            if matched_id is not None:
-                previous_ids[track_id] = matched_id
+        matched_id = face_memory.match_or_add(frame, (x1, y1, x2, y2))
+        if matched_id is not None:
+            previous_ids[track_id] = matched_id
 
         else:
             matched_id = previous_ids.get(track_id, None)
