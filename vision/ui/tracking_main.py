@@ -143,6 +143,13 @@ while cap.isOpened():
         selected_id=selected_object_id,
         face_memory=face_memory, 
         previous_ids=previous_ids)
+    
+    if current_task_id:
+        goal = task_executor.step(center)
+        packet = struct.pack('<BHH', current_task_id, goal[0], goal[1])
+        # send data to MCU (little endian)
+        s.write(packet)
+        # LOGGER.info(f"Sent {goal}")
 
 
     cv2.imshow(window_name, im)
@@ -154,13 +161,6 @@ while cap.isOpened():
     key = cv2.waitKey(1) & 0xFF
     if key == ord("q"):
         break
-
-    if current_task_id:
-        goal = task_executor.step(center)
-        packet = struct.pack('<BHH', current_task_id, goal[0], goal[1])
-        # send data to MCU (little endian)
-        s.write(packet)
-        # LOGGER.info(f"Sent {goal}")
 
 cap.release()
 if save_video and vw is not None:
