@@ -3,6 +3,6 @@
 This module defines a custom graph.
 """
 
-from vision.agent.graph import graph
+from agent.graph import graph
 
 __all__ = ["graph"]
