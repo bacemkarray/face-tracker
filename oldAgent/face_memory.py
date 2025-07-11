@@ -1,8 +1,10 @@
 import time
 import cv2
+import json
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 from insightface.app import FaceAnalysis
+import redis
 
 # Necessary to ensure the YOLO box being fed in matches with the box detected by FaceAnalysis.
 # Needed until I decide to isolate the face recognition from the rest of the InsightFace pipeline. 
@@ -41,11 +43,24 @@ class FaceEmbedder:
 
 
 class FaceMemory:
-    def __init__(self, threshold: float = 0.4, model_name: str = "buffalo_l"):
+    def __init__(self, threshold: float = 0.4, model_name: str = "buffalo_l", redis_url: str = "redis://localhost:6379"):
         self.memory: list[dict] = []
         self.next_id = 1
         self.threshold = threshold
         self.embedder = FaceEmbedder(model_name)
+        # Redis client for store & command bus
+        self.redis = redis.Redis.from_url(redis_url)
+
+    def _push_to_redis(self, face_id: int, emb: np.ndarray, last_seen: float):
+        key = f"face:{face_id}"
+        payload = {
+            "id": face_id,
+            # "name": f"unknown_{face_id}",
+            "embedding": emb.tolist(),
+            "last_seen": last_seen
+        }
+        # store as JSON string
+        self.redis.set(key, json.dumps(payload))
 
     def match_or_add(self, full_frame: np.ndarray, target_bbox: tuple[int,int,int,int]) -> int | None:
         emb = self.embedder.get_embedding_on_frame(full_frame, target_bbox)
@@ -60,11 +75,20 @@ class FaceMemory:
                 self.memory[best]["last_seen"] = time.time()
                 return self.memory[best]["id"]
 
-        new_id = self.next_id
+            # update Redis for this existing face
+            # self._push_to_redis(face_id, emb, last_seen)
+            return face_id
+
+
+        face_id = self.next_id
+        last_seen = time.time()
         self.memory.append({
-            "id": new_id,
+            "id": face_id,
             "embedding": emb,
-            "last_seen": time.time()
+            "last_seen": last_seen
         })
         self.next_id += 1
-        return new_id
+
+        # push new face into Redis
+        self._push_to_redis(face_id, emb, last_seen)
+        return face_id
