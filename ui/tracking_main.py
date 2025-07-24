@@ -10,21 +10,21 @@ import struct
 from ultralytics import YOLO
 from ultralytics.utils import LOGGER
 
-from vision.ui import tracking_utils 
-from vision.oldAgent.task_executor import TaskExecutor
+from ui import tracking_utils 
+from oldAgent.task_executor import TaskExecutor
 
-from vision.oldAgent.face_memory import FaceMemory
+from oldAgent.face_memory import FaceMemory
 
 
-from vision.agent import graph
+# from agent import graph
 
 task_executor = TaskExecutor()
 face_memory = FaceMemory()
 
-user_input = input("Give a command that you would like to run: ")
-command = graph.invoke({"instructions": user_input}) # currently outputs a task to do
-task_executor.add_task(command['task'])
-current_task_id = 1
+# user_input = input("Give a command that you would like to run: ")
+# command = graph.invoke({"instructions": user_input}) # currently outputs a task to do
+# task_executor.add_task(command['task'])
+current_task_id = False
 
 # for face ids
 previous_ids = {}
@@ -34,7 +34,7 @@ s = Serial(port="COM6", baudrate=115200)
 
 # config
 enable_gpu = True  # Set True if running with CUDA
-model_file = "vision/yolov11l-face.pt"  # Path to model file
+model_file = "yolov11l-face.pt"  # Path to model file
 show_fps = True  # If True, shows current FPS in top-left corner
 show_conf = False  # Display or hide the confidence score
 save_video = False  # Set True to save output video
