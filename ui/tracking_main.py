@@ -11,20 +11,17 @@ from ultralytics import YOLO
 from ultralytics.utils import LOGGER
 
 from ui import tracking_utils 
-from oldAgent.task_executor import TaskExecutor
 
 from oldAgent.face_memory import FaceMemory
 
 
 # from agent import graph
 
-task_executor = TaskExecutor()
 face_memory = FaceMemory()
 
 # user_input = input("Give a command that you would like to run: ")
 # command = graph.invoke({"instructions": user_input}) # currently outputs a task to do
 # task_executor.add_task(command['task'])
-current_task_id = False
 
 # for face ids
 previous_ids = {}
@@ -144,12 +141,11 @@ while cap.isOpened():
         face_memory=face_memory, 
         previous_ids=previous_ids)
     
-    if current_task_id:
-        goal = task_executor.step(center)
-        packet = struct.pack('<BHH', current_task_id, goal[0], goal[1])
-        # send data to MCU (little endian)
-        s.write(packet)
-        # LOGGER.info(f"Sent {goal}")
+
+    packet = struct.pack('<HH', center[0], center[1])
+    # send data to MCU (little endian)
+    s.write(packet)
+    # LOGGER.info(f"Sent {goal}")
 
 
     cv2.imshow(window_name, im)

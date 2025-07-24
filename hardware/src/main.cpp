@@ -58,9 +58,7 @@ void loop() {
 
   // We expect 5 bytes from Serial per frame 
   // one byte for the current task, (x, y) as two‐byte integers):
-  if (Serial.available() >= 5) {
-    uint8_t task_id = Serial.read(); // Get task context
-
+  if (Serial.available() >= 4) {
     // Read x (low‐byte, high‐byte)
     uint16_t x = Serial.read();
     x |= ( (uint16_t)Serial.read() << 8 );
@@ -69,23 +67,15 @@ void loop() {
     uint16_t y = Serial.read();
     y |= ( (uint16_t)Serial.read() << 8 );
 
-    switch (task_id) {
-      case 0: {// track
-        // Run PD update. Returns { x = pan, y = tilt }
-        auto command = controller.update((float)x, (float)y);
-        int send_x = command.x;  // “pan” angle
-        int send_y = command.y;  // “tilt” angle
-        base.write(send_x);             // yaw stays unchanged
-        elbow.write(send_y); // new elbow “bend” angle
-        // shoulder.write(send_y);         // new shoulder pitch angle
-        break;
-      }
-      case 1: {// scan
-        base.write(x);             // yaw stays unchanged
-        elbow.write(y); // new elbow “bend” angle
-        // shoulder.write(send_y);         // new shoulder pitch angle
-        break;
-      }
-    }
+    
+    // Run PD update. Returns { x = pan, y = tilt }
+    auto command = controller.update((float)x, (float)y);
+    int send_x = command.x;  // “pan” angle
+    int send_y = command.y;  // “tilt” angle
+    base.write(send_x);             // yaw stays unchanged
+    elbow.write(send_y); // new elbow “bend” angle
+    // shoulder.write(send_y);         // new shoulder pitch angle
+      
+    
   }
 }
