@@ -76,7 +76,7 @@ class FaceMemory:
                 return self.memory[best]["id"]
 
             # update Redis for this existing face
-            # self._push_to_redis(face_id, emb, last_seen)
+            self._push_to_redis(face_id, emb, last_seen)
             return face_id
 
 
