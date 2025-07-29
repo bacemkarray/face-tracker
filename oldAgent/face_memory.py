@@ -49,7 +49,7 @@ class FaceMemory:
         self.threshold = threshold
         self.embedder = FaceEmbedder(model_name)
         # Redis client for store & command bus
-        self.redis = redis.Redis.from_url(redis_url)
+        # self.redis = redis.Redis.from_url(redis_url)
 
     def _push_to_redis(self, face_id: int, emb: np.ndarray, last_seen: float):
         key = f"face:{face_id}"
