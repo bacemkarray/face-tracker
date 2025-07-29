@@ -1,131 +1,72 @@
-from langchain_core.messages import SystemMessage
-from langchain_openai import ChatOpenAI
-from typing import List, Literal, Optional, Union
+from typing import Optional, Literal, List
 from typing_extensions import TypedDict
 from langgraph.graph import StateGraph, START, END
-from langchain_community.storage.redis import RedisStore
-
-# https://smith.langchain.com/studio/?baseUrl=http://127.0.0.1:8123
-
-# redis_store = RedisStore(redis_url="redis://langgraph-redis:6379")
-# from langgraph.checkpoint.memory import MemorySaver
-
-llm = ChatOpenAI(model="gpt-4o").with_structured_output(method="json_mode")
+from langgraph.store.memory import InMemoryStore
+from langgraph.store.base import BaseStore
 
 
-prompt_template = """
-You are a task planner for a robotic arm. Convert the following instruction into a list of task objects in JSON format.
-
-Each task should follow this format:
-{{
-  "mode": "search" or "track",
-  "duration": optional float (seconds),
-  "target": optional string (person label like "dad" or "unknown_3") or null if not applicable
-}}
-
-Examples:
-
-Input: search for 15 seconds
-Output: [
-  {{"mode": "search", "target": null, "duration": 15}},
-]
-
-Input: follow dad for 10 seconds
-Output: [
-  {{"mode": "track", "target": "dad", "duration": 10}}
-]
-
-Input: {instructions}
-Output:
-"""
-
-
-# -------- SCHEMA -------- #
-class Task(TypedDict):
-  mode: str
-  duration: float = None
-  target: str = None
-  
+# Define input and output state schemas
 class InputState(TypedDict):
-  instructions: str
+    face_id: str
+    embedding: Optional[List[float]]  # embedding is optional, only for store
+    command: Literal["store", "retrieve"]
 
 class OutputState(TypedDict):
-  task: Optional[Task]
-  face_embedding: Optional[Union[str, List[float]]]  # Adjust type to your embedding format
-  tracking_status: Optional[str]
+    message: str
+    embedding: Optional[List[float]]  # embedding returned only on retrieve success
 
 class OverallState(InputState, OutputState):
-  pass
+    pass
+
+# Node to handle storing or retrieving embeddings
+def handle_embedding(state: InputState, store: BaseStore) -> OutputState:
+    face_id = state["face_id"]
+    command = state["command"]
+
+    if command == "store":
+        embedding = state.get("embedding")
+        if embedding is None:
+            return {"message": f"No embedding provided to store for face_id '{face_id}'.", "embedding": None}
+        # Store embedding under namespace "face_embeddings" with key face_id
+        store.put(namespace=("face_embeddings",), key=face_id, value=embedding)
+        return {"message": f"Embedding for face_id '{face_id}' stored successfully.", "embedding": embedding}
+
+    elif command == "retrieve":
+        # Retrieve embedding from store
+        embedding = store.get(namespace=("face_embeddings",), key=face_id)
+        if embedding is None:
+            return {"message": f"No embedding found for face_id '{face_id}'.", "embedding": None}
+        return {"message": f"Embedding retrieved for face_id '{face_id}'.", "embedding": embedding}
+
+    else:
+        return {"message": f"Unknown command '{command}'. Use 'store' or 'retrieve'.", "embedding": None}
 
 
-# -------- NODES -------- #
-def generate_task(state : InputState) -> OutputState:
-    instructions = state["instructions"]
-    prompt = prompt_template.format(instructions=instructions)
-    system_message = SystemMessage(content=prompt)
-    response = llm.invoke([system_message])
-    return {"task": response}
+in_memory_store = InMemoryStore()
 
-# def retrieve_face_embedding(state: OverallState) -> OverallState:
-#     target = state.get("task", {}).get("target")
-#     if not target:
-#         return {"task": state.get("task")}  # No target, nothing to retrieve
-
-#     # Assuming embeddings are stored in Redis with key pattern "face_embedding:{target}"
-#     embedding = redis_store.get(f"face_embedding:{target}")
-#     if embedding is None:
-#         # Handle missing embedding gracefully
-#         embedding = None
-#     else:
-#         # If stored as JSON string, deserialize here
-#         import json
-#         try:
-#             embedding = json.loads(embedding)
-#         except Exception:
-#             pass
-
-#     return {
-#         **state,
-#         "face_embedding": embedding,
-#     }
-
-# def send_to_tracker(state: OverallState) -> OverallState:
-#     embedding = state.get("face_embedding")
-#     if not embedding:
-#         return state  # Nothing to send
-
-#     # Send embedding to real-time tracker (e.g., via API, message queue)
-#     # Example: send_embedding_to_tracker(embedding)
-#     # You need to implement this function according to your system
-
-#     return {
-#         **state,
-#         "tracking_status": "started",
-#     }
-
-# def await_tracking_status(state: OverallState) -> OverallState:
-#     target = state.get("task", {}).get("target")
-#     if not target:
-#         return state
-
-#     # Check Redis or other store for status update
-#     status = redis_store.get(f"tracking_status:{target}")
-#     if status is None:
-#         # No status yet, pause or return without progressing
-#         # LangGraph can pause here until resumed externally
-#         return state  # or raise an interrupt to pause
-
-#     return {
-#         **state,
-#         "tracking_status": status,
-#     }
-
-# -------- GRAPH -------- #
-# checkpointer = MemorySaver()
+# Build the graph
 graph = (
     StateGraph(OverallState, input_schema=InputState, output_schema=OutputState)
-    .add_node("create_task", generate_task)
-    .add_edge(START, "create_task")
-    .add_edge("create_task", END)
-    .compile()
+    .add_node("handle_embedding", handle_embedding)
+    .add_edge(START, "handle_embedding")
+    .add_edge("handle_embedding", END)
+    .compile(store=in_memory_store)
 )
+
+# To store an embedding
+input_data_store = {
+    "face_id": "user123",
+    "command": "store",
+    "embedding": [0.1, 0.2, 0.3, 0.4],
+}
+
+result_store = graph.invoke(input=input_data_store)
+print(result_store)
+
+input_data_retrieve = {
+    "face_id": "user123",
+    "command": "retrieve",
+}
+
+result_retrieve = graph.invoke(input=input_data_retrieve)
+print(result_retrieve)
