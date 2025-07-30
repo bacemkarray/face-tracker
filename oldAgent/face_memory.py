@@ -57,7 +57,8 @@ class FaceMemory:
         #     "embedding": emb.tolist(),
         # }
         payload = emb.tolist()
-        run_async_background(send_embedding(face_id, payload))
+        routine = send_embedding(face_id, payload)
+        run_async_background(routine)
 
 
         
