@@ -27,7 +27,7 @@ face_memory = FaceMemory()
 previous_ids = {}
 
 #
-s = Serial(port="COM6", baudrate=115200)
+# s = Serial(port="COM6", baudrate=115200)
 
 # config
 enable_gpu = True  # Set True if running with CUDA
@@ -142,9 +142,9 @@ while cap.isOpened():
         previous_ids=previous_ids)
     
 
-    packet = struct.pack('<HH', center[0], center[1])
+    # packet = struct.pack('<HH', center[0], center[1])
     # send data to MCU (little endian)
-    s.write(packet)
+    # s.write(packet)
     # LOGGER.info(f"Sent {goal}")
 
 
