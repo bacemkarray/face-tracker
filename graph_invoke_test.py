@@ -3,44 +3,29 @@ import asyncio
 
 async def send_embedding(face_id: int, emb: list[float]):
     client = get_client(url="http://localhost:8123")
-    thread = await client.threads.create()
-    thread_id = thread["thread_id"]
+    await client.store.put_item(namespace=["face_embeddings"],
+                                key=face_id,
+                                value={"embedding": emb})
 
 
-    input_data_store = {
-        "face_id": face_id,
-        "command": "store",
-        "embedding": emb,
-    }
-
-    # Stream the store command response
-    print("Storing embedding...")
-    stream = client.runs.stream(
-        thread_id,
-        "research-project-agent",
-        input=input_data_store,
-        stream_mode="updates",
-    )
-
-    async for chunk in stream:
-        print(f"Event type: {chunk.event}")
-        print(f"Data: {chunk.data}")
 
 
-    # # Example input to retrieve the embedding
-    # input_data_retrieve = {
-    #     "face_id": "user123",
-    #     "command": "retrieve",
-    # }
 
-    # stream = client.runs.stream(
-    #     thread_id,  # Threadless run
-    #     "research-project-agent", 
-    #     input=input_data_retrieve,
-    #     stream_mode="updates",
-    # )
 
-    # async for chunk in stream:
-    #     print(f"Event type: {chunk.event}")
-    #     print(f"Data: {chunk.data}")
+async def main():
+    client = get_client(url="http://localhost:8123")
+    # await client.store.put_item(["face_embeddings"],
+    #                             key="bacem",
+    #                             value={"embedding": [0.1, 0.2, 0.3, 0.4]})
     
+    namespaces = await client.store.list_namespaces(prefix=["face_embeddings"])
+    item = await client.store.get_item(["face_embeddings"],
+                                       key="bacem")
+
+    print(namespaces)
+    print(item)
+
+
+    
+
+asyncio.run(main())
