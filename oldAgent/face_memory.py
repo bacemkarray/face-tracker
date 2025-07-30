@@ -49,12 +49,13 @@ class FaceMemory:
         self.embedder = FaceEmbedder(model_name)
 
     def push_to_graph(self, face_id: int, emb: np.ndarray):
-        key = f"face:{face_id}"
         payload = {
             "id": face_id,
-            # "name": f"unknown_{face_id}",
+            "command": "store",
             "embedding": emb.tolist(),
         }
+
+        
 
     def match_or_add(self, full_frame: np.ndarray, target_bbox: tuple[int,int,int,int]) -> int | None:
         emb = self.embedder.get_embedding_on_frame(full_frame, target_bbox)
