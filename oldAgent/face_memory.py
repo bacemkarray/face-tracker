@@ -57,16 +57,10 @@ class FaceMemory:
         #     "embedding": emb.tolist(),
         # }
         payload = emb.tolist()
-        self.run_async_background(send_embedding(face_id, payload))
+        run_async_background(send_embedding(face_id, payload))
 
-    def run_async_background(coro):
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-        loop.create_task(coro)
 
+        
 
     def match_or_add(self, full_frame: np.ndarray, target_bbox: tuple[int,int,int,int]) -> int | None:
         emb = self.embedder.get_embedding_on_frame(full_frame, target_bbox)
@@ -96,3 +90,12 @@ class FaceMemory:
         # push new face into Redis
         self.push_to_graph(face_id, emb)
         return face_id
+    
+
+def run_async_background(coro):
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+    loop.create_task(coro)
