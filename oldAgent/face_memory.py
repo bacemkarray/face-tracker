@@ -1,12 +1,14 @@
 import time
 import cv2
-import json
+import asyncio
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 from insightface.app import FaceAnalysis
+from graph_invoke_test import send_embedding
 
 # Necessary to ensure the YOLO box being fed in matches with the box detected by FaceAnalysis.
-# Needed until I decide to isolate the face recognition from the rest of the InsightFace pipeline. 
+# Needed until I decide to remove YOLO or isolate face embedding from the rest of the
+# InsightFace pipeline. Until then, will cause noticeable drops in performance.
 def compute_iou(boxA, boxB):
     xA = max(boxA[0], boxB[0]);  yA = max(boxA[1], boxB[1])
     xB = min(boxA[2], boxB[2]);  yB = min(boxA[3], boxB[3])
@@ -55,7 +57,14 @@ class FaceMemory:
             "embedding": emb.tolist(),
         }
 
-        
+    def run_async_background(coro):
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+        loop.create_task(coro)
+
 
     def match_or_add(self, full_frame: np.ndarray, target_bbox: tuple[int,int,int,int]) -> int | None:
         emb = self.embedder.get_embedding_on_frame(full_frame, target_bbox)
