@@ -51,11 +51,13 @@ class FaceMemory:
         self.embedder = FaceEmbedder(model_name)
 
     def push_to_graph(self, face_id: int, emb: np.ndarray):
-        payload = {
-            "id": face_id,
-            "command": "store",
-            "embedding": emb.tolist(),
-        }
+        # payload = {
+        #     "id": face_id,
+        #     "command": "store",
+        #     "embedding": emb.tolist(),
+        # }
+        payload = emb.tolist()
+        self.run_async_background(send_embedding(face_id, payload))
 
     def run_async_background(coro):
         try:
