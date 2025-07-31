@@ -5,7 +5,7 @@ async def send_embedding(face_id: int, emb: list[float]):
     print(f"🧠 send_embedding CALLED for ID {face_id}")
     client = get_client(url="http://localhost:8123")
     await client.store.put_item(["face_embeddings"],
-                                key=face_id,
+                                key=f"{face_id}",
                                 value={"embedding": emb})
     print(f"✅ embedding STORED for ID {face_id}")
 
