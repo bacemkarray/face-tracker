@@ -5,6 +5,8 @@ import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 from insightface.app import FaceAnalysis
 from graph_invoke_test import send_embedding
+import asyncio
+
 
 # Necessary to ensure the YOLO box being fed in matches with the box detected by FaceAnalysis.
 # Needed until I decide to remove YOLO or isolate face embedding from the rest of the
@@ -57,8 +59,7 @@ class FaceMemory:
         #     "embedding": emb.tolist(),
         # }
         payload = emb.tolist()
-        routine = send_embedding(face_id, payload)
-        run_async_background(routine)
+        asyncio.run(send_embedding(face_id, payload))
 
 
         
@@ -93,10 +94,10 @@ class FaceMemory:
         return face_id
     
 
-def run_async_background(coro):
-    try:
-        loop = asyncio.get_running_loop()
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-    loop.create_task(coro)
+# def run_async_background(coro):
+#     try:
+#         loop = asyncio.get_running_loop()
+#     except RuntimeError:
+#         loop = asyncio.new_event_loop()
+#         asyncio.set_event_loop(loop)
+#     loop.create_task(coro)
