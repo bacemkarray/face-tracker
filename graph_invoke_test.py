@@ -1,10 +1,9 @@
-from langgraph_sdk import get_client
-import asyncio
+from langgraph_sdk import get_sync_client
 
-async def send_embedding(face_id: int, emb: list[float]):
+def send_embedding(face_id: int, emb: list[float]):
     print(f"🧠 send_embedding CALLED for ID {face_id}")
-    client = get_client(url="http://localhost:8123")
-    await client.store.put_item(["face_embeddings"],
+    client = get_sync_client(url="http://localhost:8123")
+    client.store.put_item(["face_embeddings"],
                                 key=f"{face_id}",
                                 value={"embedding": emb})
     print(f"✅ embedding STORED for ID {face_id}")
@@ -14,38 +13,14 @@ async def send_embedding(face_id: int, emb: list[float]):
 
 
 
-# async def main():
-#     client = get_client(url="http://localhost:8123")
-#     await client.store.put_item(["face_embeddings"],
-#                                 key="bacem",
-#                                 value={"embedding": [-0.3648916184902191, 0.2177400439977646, 0.10249585658311844, 
-#                                                      -1.147135615348816, -0.9763093590736389, -0.056055355817079544, 
-#                                                      -1.6083219051361084, -1.2375648021697998, -1.2301177978515625, 
-#                                                      0.49079784750938416, -0.3136483430862427, 2.7252140045166016, 
-#                                                      -0.21948416531085968, 1.196125864982605, -0.534125030040741, 
-#                                                      0.25051140785217285, -0.8770596385002136, 0.2795689105987549, 
-#                                                      0.02860318310558796, 0.41196027398109436, 0.4971483647823334, 
-#                                                      -0.5835491418838501, 0.12829254567623138, -1.322893738746643, 
-#                                                      0.05670744553208351, 0.5788877010345459, -0.8411836624145508, 
-#                                                      0.0803864598274231, 1.1292293071746826, -0.14645825326442719, 
-#                                                      -0.13195399940013885, 0.5183857083320618, -0.4160868525505066, 
-#                                                      2.1254255771636963, 0.25512567162513733, 0.41769373416900635, 
-#                                                      0.0018880012212321162, -1.1165567636489868, 0.9901134371757507, 
-#                                                      -0.12656964361667633, 0.3559930920600891, -1.2973289489746094, 
-#                                                      2.7018682956695557, -0.1923224925994873, -2.2852981090545654, 
-#                                                      0.05912894383072853, 0.5437732338905334, 0.7000021934509277, 
-#                                                      -0.11342403292655945, -1.1415237188339233, 0.8787140846252441, 
-#                                                      0.8547315001487732, -0.7838255763053894, 0.8776293396949768, 
-#                                                      -0.2836742103099823, 0.2460698038339615, 0.885689914226532, 
-#                                                      -0.6480017304420471, -1.0819746255874634]})
+# def main():
+#     client = get_sync_client(url="http://localhost:8123")
     
-#     namespaces = await client.store.list_namespaces(prefix=["face_embeddings"])
-#     item = await client.store.search_items(["face_embeddings"])
+#     # namespaces = client.store.list_namespaces(prefix=["face_embeddings"])
+#     item = client.store.search_items(["face_embeddings"])
 
-#     print(namespaces)
+#     # print(namespaces)
 #     print(item)
 
-
-    
-
-# asyncio.run(main())
+# if __name__ == "__main__":
+#     main()
