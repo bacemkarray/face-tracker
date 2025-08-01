@@ -6,6 +6,8 @@ from sklearn.metrics.pairwise import cosine_similarity
 from insightface.app import FaceAnalysis
 from graph_invoke_test import send_embedding
 import asyncio
+from concurrent.futures import ThreadPoolExecutor
+from langgraph_sdk import get_sync_client
 
 
 # Necessary to ensure the YOLO box being fed in matches with the box detected by FaceAnalysis.
@@ -51,16 +53,22 @@ class FaceMemory:
         self.next_id = 1
         self.threshold = threshold
         self.embedder = FaceEmbedder(model_name)
+        self.executor = ThreadPoolExecutor(max_workers=4)
+        self.client = get_sync_client(url="http://localhost:8123")
 
     def push_to_graph(self, face_id: int, emb: np.ndarray):
-        # payload = {
-        #     "id": face_id,
-        #     "command": "store",
-        #     "embedding": emb.tolist(),
-        # }
-        payload = emb.tolist()
-        asyncio.run(send_embedding(face_id, payload))
-
+        def task():
+            print(f"📤 [sync] Storing face {face_id}")
+            try:
+                self.client.store.put_item(
+                    ["face_embeddings"],
+                    key=str(face_id),
+                    value={"embedding": emb.tolist()}
+                )
+                print(f"✅ [sync] Stored    face {face_id}")
+            except Exception as e:
+                print(f"🔥 [sync] Failed to store face {face_id}: {e}")
+        self.executor.submit(task)
 
         
 
@@ -92,12 +100,3 @@ class FaceMemory:
         # push new face into Redis
         self.push_to_graph(face_id, emb)
         return face_id
-    
-
-# def run_async_background(coro):
-#     try:
-#         loop = asyncio.get_running_loop()
-#     except RuntimeError:
-#         loop = asyncio.new_event_loop()
-#         asyncio.set_event_loop(loop)
-#     loop.create_task(coro)
