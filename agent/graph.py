@@ -3,7 +3,7 @@ from typing_extensions import TypedDict
 from langgraph.graph import StateGraph, START, END
 from langgraph.store.base import BaseStore
 from langchain_core.tools import tool
-
+from langchain_openai import ChatOpenAI
 
 # Define input and output state schemas
 class InputState(TypedDict):
@@ -21,7 +21,6 @@ class OverallState(InputState, OutputState):
 
 
 
-@tool
 def rename_key(old_key: str, new_key: str, store: BaseStore):
     # Fetch old entry
     old_entry = store.get(("face_embeddings"), old_key)
@@ -34,19 +33,18 @@ def rename_key(old_key: str, new_key: str, store: BaseStore):
     return f"Renamed {old_key} to {new_key}"
 
 
-@tool
 def store_key(key, value, store: BaseStore):
     store.put(("face_embeddings",), key, value)
     return f"Stored face embedding of {key}"
 
 
-@tool
 def get_key(key, store: BaseStore):
     value = store.get(("face_embeddings",), key)
     return value
 
 
-
+llm = ChatOpenAI(model="gpt-4o")
+llm_with_tools = llm.bind_tools([rename_key, store_key, get_key])
 
 
 # Node to handle storing or retrieving embeddings
