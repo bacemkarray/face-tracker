@@ -88,12 +88,9 @@ def rename_key(old_key: str, new_key: str, store: Annotated[BaseStore, InjectedS
     store.delete(namespace, old_key)
     return f"Renamed {old_key} to {new_key}"
 
-import os
-
-API_KEY=os.getenv("OPENAI_API_KEY")
 
 tools = [store_key, delete_key, get_key, rename_key]
-llm = ChatOpenAI(model="gpt-4o", api_key=API_KEY)
+llm = ChatOpenAI(model="gpt-4o")
 llm_with_tools = llm.bind_tools(tools)
 
 sys_msg = SystemMessage(content="You are a node in a workflow tasked with interacting with a memory storage in a desired way based on an input.")
