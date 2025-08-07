@@ -100,13 +100,13 @@ def show_fps(im, fps_counter, fps_display, fps_timer):
     return fps_counter, fps_display, fps_timer
 
 
-def process_detections(frame, faces, selected_id, face_memory):
+def process_detections(frame, faces, selected_id, memory):
     annotator = Annotator(frame)    
     center = None
     for face in faces:
         x1, y1, x2, y2 = map(int, face.bbox)
         emb = face.embedding
-        matched_id = face_memory.match_or_add(emb)
+        matched_id = memory.match_or_add(emb)
         if matched_id is None:
             continue 
         
