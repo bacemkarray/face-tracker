@@ -10,18 +10,6 @@ from concurrent.futures import ThreadPoolExecutor
 from langgraph_sdk import get_sync_client
 
 
-# Necessary to ensure the YOLO box being fed in matches with the box detected by FaceAnalysis.
-# Needed until I decide to remove YOLO or isolate face embedding from the rest of the
-# InsightFace pipeline. Until then, will cause noticeable drops in performance.
-def compute_iou(boxA, boxB):
-    xA = max(boxA[0], boxB[0]);  yA = max(boxA[1], boxB[1])
-    xB = min(boxA[2], boxB[2]);  yB = min(boxA[3], boxB[3])
-    inter = max(0, xB - xA) * max(0, yB - yA)
-    areaA = (boxA[2]-boxA[0])*(boxA[3]-boxA[1])
-    areaB = (boxB[2]-boxB[0])*(boxB[3]-boxB[1])
-    return inter / float(areaA + areaB - inter + 1e-6)
-
-
 
 class FaceMemory:
     def __init__(self, threshold: float = 0.4, model_name: str = "buffalo_l"):
