@@ -22,28 +22,25 @@ face_memory = FaceMemory()
 # command = graph.invoke({"instructions": user_input}) # currently outputs a task to do
 # task_executor.add_task(command['task'])
 
-# for face ids
-previous_ids = {}
 
 
+# # instantiate redis helper
+# redis_helper = redis_helper.RedisHelper(host="localhost", port=6379)
+# selected_object_id = None
 
-# instantiate redis helper
-redis_helper = redis_helper.RedisHelper(host="localhost", port=6379)
-selected_object_id = None
+# def handle_command(data: dict):
+#     global selected_object_id
+#     cmd = data.get("type")
+#     if cmd == "track":
+#         # data["target"] might be an ID or name
+#         selected_object_id = data["target"]
+#         print(f"🔁 Now tracking ID {selected_object_id}")
+#     elif cmd == "rename":
+#         # you’ll wire this into your local mapping later
+#         print(f"🔁 Rename request: ID {data['id']} → {data['new_name']}")
 
-def handle_command(data: dict):
-    global selected_object_id
-    cmd = data.get("type")
-    if cmd == "track":
-        # data["target"] might be an ID or name
-        selected_object_id = data["target"]
-        print(f"🔁 Now tracking ID {selected_object_id}")
-    elif cmd == "rename":
-        # you’ll wire this into your local mapping later
-        print(f"🔁 Rename request: ID {data['id']} → {data['new_name']}")
-
-redis_helper.subscribe("realtime_commands", handle_command)
-redis_helper.start()
+# redis_helper.subscribe("realtime_commands", handle_command)
+# redis_helper.start()
 
 
 #
@@ -76,7 +73,7 @@ window_name = "Tracking Window"  # Output window name
 app = FaceAnalysis(name=model_name, provider=source)
 app.prepare(ctx_id=ctx, det_size=(640, 640))
 
-cap = cv2.VideoCapture(1)
+cap = cv2.VideoCapture(0)
 
 # Initialize video writer
 vw = None
@@ -88,9 +85,8 @@ if save_video:
 selected_object_id = None
 selected_bbox = None
 selected_center = None
-results = None
 latest_frame = None
-
+faces = []
 
 # move this soon
 def click_event(event: int, x: int, y: int, flags: int, param) -> None:
@@ -105,25 +101,23 @@ def click_event(event: int, x: int, y: int, flags: int, param) -> None:
         param (Any): Additional parameters (not used).
     """
     pass
-    # global current_task_id, selected_object_id, results
-    # if event == cv2.EVENT_LBUTTONDOWN and results is not None:
-    #     detections = results[0].boxes.data if results[0].boxes is not None else []
-    #     if detections is not None:
+    # global faces, selected_object_id
+    # if event == cv2.EVENT_LBUTTONDOWN and faces:
+    #         if not faces:
+    #             return
+
     #         min_area = float("inf")
-    #         best_bbox = None
-    #         for track in detections:
-    #             track = track.tolist()
-    #             if len(track) >= 6:
-    #                 x1, y1, x2, y2 = map(int, track[:4])
-    #                 if x1 <= x <= x2 and y1 <= y <= y2:
-    #                     area = (x2 - x1) * (y2 - y1)
-    #                     if area < min_area:
-    #                         min_area = area
-    #                         best_bbox = (x1, y1, x2, y2)
-    #         if best_bbox:
-    #             x1, y1, x2, y2 = best_bbox
-    #             # crop = im[y1:y2, x1:x2]
-    #             matched_id = face_memory.match_or_add(im, best_bbox)
+    #         best_face = None
+    #         for face in faces:
+    #             x1, y1, x2, y2 = map(int, face.bbox)
+    #             if x1 <= x <= x2 and y1 <= y <= y2:
+    #                 area = (x2 - x1) * (y2 - y1)
+    #                 if area < min_area:
+    #                     min_area = area
+    #                     best_face = face
+            
+    #         if best_face:
+    #             matched_id = face_memory.match_or_add(best_face.embedding)
     #             if matched_id:
     #                 selected_object_id = matched_id
     #                 print(f"🔵 TRACKING STARTED: memory (ID {selected_object_id})")
