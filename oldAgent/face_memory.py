@@ -70,7 +70,6 @@ class FaceMemory:
             sims = cosine_similarity([emb], known)[0]
             best = int(np.argmax(sims))
             if sims[best] > self.threshold:
-                self.memory[best]["last_seen"] = time.time()
                 return self.memory[best]["id"]
 
             # update langgraph for this existing face
