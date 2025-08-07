@@ -32,7 +32,9 @@ class FaceMemory:
     def match_or_add(self, emb: np.ndarray) -> int | None:
         if emb is None:
             return None
-
+        
+        face_id = "???:" + str(self.next_id)
+        
         known = [e["embedding"] for e in self.memory]
         if known:
             sims = cosine_similarity([emb], known)[0]
@@ -45,7 +47,7 @@ class FaceMemory:
             return face_id
 
 
-        face_id = self.next_id
+
         self.memory.append({
             "id": face_id,
             "embedding": emb,
