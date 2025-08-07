@@ -12,8 +12,10 @@ from ui import tracking_utils
 
 from oldAgent.face_memory import FaceMemory
 
+from insightface.app import FaceAnalysis
 
-# from agent import graph
+import numpy as np
+
 
 face_memory = FaceMemory()
 
@@ -32,12 +34,38 @@ enable_gpu = True  # Set True if running with CUDA
 show_fps = True  # If True, shows current FPS in top-left corner
 save_video = False  # Set True to save output video
 video_output_path = "tracker_output.avi"  # Output video file name
+model_name = "buffalo_l"
 
+if enable_gpu:
+    source=['CUDAExecutionProvider']
+else:
+    source=['CPUExecutionProvider']
 
 window_name = "Tracking Window"  # Output window name
 
+# loads SCRFD-500MF detector + MobileFaceNet recognizer
+app = FaceAnalysis(name=model_name, provider=source)
+app.prepare(ctx_id=0, det_size=(640, 640))
+
+
+
+
+
+
+
+
+
 
 cap = cv2.VideoCapture(0)  # Replace with video path if needed
+
+
+
+
+
+
+
+
+
 
 # Initialize video writer
 vw = None
@@ -50,6 +78,18 @@ selected_bbox = None
 selected_center = None
 results = None
 latest_frame = None
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 # move this soon
@@ -107,12 +147,15 @@ while cap.isOpened():
             fps_display,
             fps_timer)
     
-    results = model.track(im, conf=conf, iou=iou, max_det=max_det, tracker=tracker, **track_args)
-    detections = results[0].boxes.data if results[0].boxes is not None else []
+
+    rgb = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
+    faces = app.get(rgb)
+
+
     center = None
     annotated_im, center = tracking_utils.process_detections(
         frame=im,
-        detections=detections,
+        detections=faces,
         selected_id=selected_object_id,
         face_memory=face_memory, 
         previous_ids=previous_ids)
