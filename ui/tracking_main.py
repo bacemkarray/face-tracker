@@ -7,8 +7,6 @@ import time
 from serial import Serial
 import struct
 
-from ultralytics import YOLO
-from ultralytics.utils import LOGGER
 
 from ui import tracking_utils 
 
@@ -31,35 +29,13 @@ previous_ids = {}
 
 # config
 enable_gpu = True  # Set True if running with CUDA
-model_file = "yolov11l-face.pt"  # Path to model file
 show_fps = True  # If True, shows current FPS in top-left corner
-show_conf = False  # Display or hide the confidence score
 save_video = False  # Set True to save output video
-video_output_path = "interactive_tracker_output.avi"  # Output video file name
+video_output_path = "tracker_output.avi"  # Output video file name
 
 
-conf = 0.3  # Min confidence for object detection (lower = more detections, possibly more false positives)
-iou = 0.3  # IoU threshold for NMS (higher = less overlap allowed)
-max_det = 5  # Maximum objects per image (increase for crowded scenes)
+window_name = "Tracking Window"  # Output window name
 
-tracker = "bytetrack.yaml"  # Tracker config: 'bytetrack.yaml', 'botsort.yaml', etc.
-track_args = {
-    "persist": True,  # Keep frames history as a stream for continuous tracking
-    "verbose": False,  # Print debug info from tracker
-}
-
-window_name = "Ultralytics YOLO Interactive Tracking"  # Output window name
-
-LOGGER.info("Initializing model...")
-if enable_gpu:
-    LOGGER.info("Using GPU...")
-    model = YOLO(model_file)
-    model.to("cuda")
-else:
-    LOGGER.info("Using CPU...")
-    model = YOLO(model_file, task="detect")
-
-classes = model.names  # Store model class names
 
 cap = cv2.VideoCapture(0)  # Replace with video path if needed
 
