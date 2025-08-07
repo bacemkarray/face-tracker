@@ -27,24 +27,13 @@ class FaceEmbedder:
         self.app = FaceAnalysis(name=model_name, provider=['CUDAExecutionProvider'])
         self.app.prepare(ctx_id=0, det_size=(640, 640))
 
-    def get_embedding_on_frame(self, full_frame_bgr: np.ndarray, target_bbox: tuple[int,int,int,int]) -> np.ndarray | None:
+    def get_embedding_on_frame(self, full_frame_bgr: np.ndarray) -> np.ndarray | None:
         rgb = cv2.cvtColor(full_frame_bgr, cv2.COLOR_BGR2RGB)
         faces = self.app.get(rgb)
         if not faces:
             return None
 
-        # pick the detected face whose bbox best overlaps the YOLO bbox
-        best_face, best_iou = None, 0.0
-        for f in faces:
-            x1,y1,x2,y2 = map(int, f.bbox)
-            iou = compute_iou(target_bbox, (x1,y1,x2,y2))
-            if iou > best_iou:
-                best_iou, best_face = iou, f
-
-        if best_face is None or best_iou < 0.5:  # tweak threshold as needed
-            return None
-
-        return best_face.embedding
+        return faces[0].embedding
 
 
 class FaceMemory:
@@ -72,8 +61,7 @@ class FaceMemory:
 
         
 
-    def match_or_add(self, full_frame: np.ndarray, target_bbox: tuple[int,int,int,int]) -> int | None:
-        emb = self.embedder.get_embedding_on_frame(full_frame, target_bbox)
+    def match_or_add(self, emb: np.ndarray) -> int | None:
         if emb is None:
             return None
 
