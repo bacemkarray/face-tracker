@@ -6,7 +6,7 @@ from langgraph_sdk import get_sync_client
 
 
 class FaceMemory:
-    def __init__(self, threshold: float = 0.4, model_name: str = "buffalo_l"):
+    def __init__(self, threshold: float = 0.4):
         self.memory: list[dict] = []
         self.next_id = 1
         self.threshold = threshold
