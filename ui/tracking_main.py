@@ -9,7 +9,7 @@ import struct
 from ui import tracking_utils 
 from ui import redis_helper
 
-
+from insightface import FaceAnalysis
 
 from oldAgent.face_memory import FaceMemory
 
