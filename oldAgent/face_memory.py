@@ -1,11 +1,5 @@
-import time
-import cv2
-import asyncio
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
-from insightface.app import FaceAnalysis
-from graph_invoke_test import send_embedding
-import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from langgraph_sdk import get_sync_client
 
