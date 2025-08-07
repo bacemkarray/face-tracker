@@ -1,4 +1,3 @@
-
 # Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license
 # Modified by Bacem Karray for personal use
 
@@ -7,27 +6,11 @@ import time
 from serial import Serial
 import struct
 
-
-from ui import tracking_utils 
-
+from ui import tracking_utils
 from oldAgent.face_memory import FaceMemory
-
 from insightface.app import FaceAnalysis
 
-import numpy as np
 
-
-face_memory = FaceMemory()
-
-# user_input = input("Give a command that you would like to run: ")
-# command = graph.invoke({"instructions": user_input}) # currently outputs a task to do
-# task_executor.add_task(command['task'])
-
-# for face ids
-previous_ids = {}
-
-#
-# s = Serial(port="COM6", baudrate=115200)
 
 # config
 enable_gpu = True  # Set True if running with CUDA
@@ -36,36 +19,27 @@ save_video = False  # Set True to save output video
 video_output_path = "tracker_output.avi"  # Output video file name
 model_name = "buffalo_l"
 
+
+face_memory = FaceMemory()
+
+#
+# s = Serial(port="COM6", baudrate=115200)
+
+
 if enable_gpu:
     source=['CUDAExecutionProvider']
+    ctx=0
 else:
     source=['CPUExecutionProvider']
+    ctx=-1
 
 window_name = "Tracking Window"  # Output window name
 
 # loads SCRFD-500MF detector + MobileFaceNet recognizer
 app = FaceAnalysis(name=model_name, provider=source)
-app.prepare(ctx_id=0, det_size=(640, 640))
+app.prepare(ctx_id=ctx, det_size=(640, 640))
 
-
-
-
-
-
-
-
-
-
-cap = cv2.VideoCapture(0)  # Replace with video path if needed
-
-
-
-
-
-
-
-
-
+cap = cv2.VideoCapture(1)
 
 # Initialize video writer
 vw = None
@@ -73,23 +47,12 @@ if save_video:
     w, h, fps = (int(cap.get(x)) for x in (cv2.CAP_PROP_FRAME_WIDTH, cv2.CAP_PROP_FRAME_HEIGHT, cv2.CAP_PROP_FPS))
     vw = cv2.VideoWriter(video_output_path, cv2.VideoWriter_fourcc(*"mp4v"), fps, (w, h))
 
+
 selected_object_id = None
 selected_bbox = None
 selected_center = None
 results = None
 latest_frame = None
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 # move this soon
@@ -155,10 +118,9 @@ while cap.isOpened():
     center = None
     annotated_im, center = tracking_utils.process_detections(
         frame=im,
-        detections=faces,
+        faces=faces,
         selected_id=selected_object_id,
-        face_memory=face_memory, 
-        previous_ids=previous_ids)
+        memory=face_memory)
     
 
     # packet = struct.pack('<HH', center[0], center[1])
