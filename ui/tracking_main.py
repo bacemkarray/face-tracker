@@ -6,11 +6,48 @@ import time
 from serial import Serial
 import struct
 
-from ui import tracking_utils
+from ui import tracking_utils 
+from ui import redis_helper
+
+
+
 from oldAgent.face_memory import FaceMemory
-from insightface.app import FaceAnalysis
 
 
+# from agent import graph
+
+face_memory = FaceMemory()
+
+# user_input = input("Give a command that you would like to run: ")
+# command = graph.invoke({"instructions": user_input}) # currently outputs a task to do
+# task_executor.add_task(command['task'])
+
+# for face ids
+previous_ids = {}
+
+
+
+# instantiate redis helper
+redis_helper = redis_helper.RedisHelper(host="localhost", port=6379)
+selected_object_id = None
+
+def handle_command(data: dict):
+    global selected_object_id
+    cmd = data.get("type")
+    if cmd == "track":
+        # data["target"] might be an ID or name
+        selected_object_id = data["target"]
+        print(f"🔁 Now tracking ID {selected_object_id}")
+    elif cmd == "rename":
+        # you’ll wire this into your local mapping later
+        print(f"🔁 Rename request: ID {data['id']} → {data['new_name']}")
+
+redis_helper.subscribe("realtime_commands", handle_command)
+redis_helper.start()
+
+
+#
+# s = Serial(port="COM6", baudrate=115200)
 
 # config
 enable_gpu = True  # Set True if running with CUDA
