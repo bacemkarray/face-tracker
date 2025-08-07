@@ -21,19 +21,6 @@ def compute_iou(boxA, boxB):
     areaB = (boxB[2]-boxB[0])*(boxB[3]-boxB[1])
     return inter / float(areaA + areaB - inter + 1e-6)
 
-class FaceEmbedder:
-    def __init__(self, model_name: str = "buffalo_l"):
-        # loads SCRFD-500MF detector + MobileFaceNet recognizer
-        self.app = FaceAnalysis(name=model_name, provider=['CUDAExecutionProvider'])
-        self.app.prepare(ctx_id=0, det_size=(640, 640))
-
-    def get_embedding_on_frame(self, full_frame_bgr: np.ndarray) -> np.ndarray | None:
-        rgb = cv2.cvtColor(full_frame_bgr, cv2.COLOR_BGR2RGB)
-        faces = self.app.get(rgb)
-        if not faces:
-            return None
-
-        return faces[0].embedding
 
 
 class FaceMemory:
@@ -41,7 +28,6 @@ class FaceMemory:
         self.memory: list[dict] = []
         self.next_id = 1
         self.threshold = threshold
-        self.embedder = FaceEmbedder(model_name)
         self.executor = ThreadPoolExecutor(max_workers=4)
         self.client = get_sync_client(url="http://localhost:8123")
 
@@ -73,7 +59,7 @@ class FaceMemory:
                 return self.memory[best]["id"]
 
             # update langgraph for this existing face
-            self.push_to_graph(face_id, emb)
+            # self.push_to_graph(face_id, emb)
             return face_id
 
 
