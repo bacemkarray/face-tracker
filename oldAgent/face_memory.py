@@ -47,7 +47,7 @@ class FaceMemory:
             return face_id
 
 
-
+        face_id = "???:" + str(self.next_id)
         self.memory.append({
             "id": face_id,
             "embedding": emb,
