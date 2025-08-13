@@ -28,11 +28,11 @@ selected_object_id = None
 
 def handle_command(data):
     global selected_object_id
-    cmd = data.get("type")
-    if cmd == "track":
+    # cmd = data.get("track")
+    # if cmd == "track":
         # data["target"] might be an ID or name
-        selected_object_id = data["target"]
-        print(f"🔁 Now tracking ID {selected_object_id}")
+    selected_object_id = data["data"]
+    print(f"🔁 Now tracking ID {selected_object_id}")
     # elif cmd == "rename":
     #     # you’ll wire this into your local mapping later
     #     print(f"🔁 Rename request: ID {data['id']} → {data['new_name']}")
@@ -162,7 +162,9 @@ while cap.isOpened():
     if key == ord("q"):
         break
     if key == ord("b"):
-        face_memory.rename_face("???:1", "Bacem")
+        # face_memory.rename_face("???:1", "Bacem")
+        redis_helper.publish("realtime_commands", {"data": "???:1"})
+        
 
 cap.release()
 if save_video and vw is not None:
