@@ -112,7 +112,7 @@ def process_detections(frame, faces, selected_id, memory):
         
         color = (0,0,255)
         txt_color = annotator.get_txt_color(color)
-        label = f"ID {matched_id}"
+        label = f"{matched_id}"
         # if the face being tracked is equal to the face the user selected.
         if matched_id == selected_id:
             draw_tracking_scope(frame, (x1, y1, x2, y2), color)
