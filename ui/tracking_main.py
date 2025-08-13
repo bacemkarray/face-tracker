@@ -161,6 +161,8 @@ while cap.isOpened():
     key = cv2.waitKey(1) & 0xFF
     if key == ord("q"):
         break
+    if key == ord("b"):
+        face_memory.rename_face("???:1", "Bacem")
 
 cap.release()
 if save_video and vw is not None:
