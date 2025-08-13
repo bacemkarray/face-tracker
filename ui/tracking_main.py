@@ -3,18 +3,16 @@
 
 import cv2
 import time
+from insightface.app import FaceAnalysis
 from serial import Serial
 import struct
 
 from ui import tracking_utils 
 from ui.redis_helper import RedisHelper
 
-from insightface.app import FaceAnalysis
 
 from oldAgent.face_memory import FaceMemory
 
-
-# from agent import graph
 
 face_memory = FaceMemory()
 
@@ -56,7 +54,6 @@ model_name = "buffalo_l"
 
 face_memory = FaceMemory()
 
-#
 # s = Serial(port="COM6", baudrate=115200)
 
 
@@ -144,8 +141,6 @@ while cap.isOpened():
 
     rgb = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
     faces = app.get(rgb)
-
-
     center = None
     annotated_im, center = tracking_utils.process_detections(
         frame=im,
@@ -153,18 +148,15 @@ while cap.isOpened():
         selected_id=selected_object_id,
         memory=face_memory)
     
-
+    # Send to MCU
     # packet = struct.pack('<HH', center[0], center[1])
     # send data to MCU (little endian)
     # s.write(packet)
-    # LOGGER.info(f"Sent {goal}")
 
 
     cv2.imshow(window_name, im)
     if save_video and vw is not None:
         vw.write(im)
-    # Terminal logging
-    # LOGGER.info(f"🟡 DETECTED {len(detections)} OBJECT(S): {' | '.join(detected_objects)}")
 
     key = cv2.waitKey(1) & 0xFF
     if key == ord("q"):
