@@ -6,6 +6,8 @@ from langgraph.graph import StateGraph, MessagesState, START, END
 from langgraph.prebuilt import tools_condition, ToolNode, InjectedStore
 from langgraph.store.base import BaseStore
 
+import redis
+import json
 
 from typing import Optional, Literal, List, Annotated
 from typing_extensions import TypedDict
@@ -89,11 +91,73 @@ def rename_key(old_key: str, new_key: str, store: Annotated[BaseStore, InjectedS
     return f"Renamed {old_key} to {new_key}"
 
 
-tools = [store_key, delete_key, get_key, rename_key]
+
+
+
+
+
+@tool
+def redis_publisher(key, value):
+    """Sends a tracking command to the real-time code."""
+    client = redis.Redis(host="langgraph-redis", port=6379, db=0, decode_responses=True)
+
+    message = {"data": key}
+    payload = json.dumps(message)
+    client.publish("realtime_commands", payload)
+    return f"Published {message} to real-time code"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+tools = [store_key, delete_key, get_key, rename_key, redis_publisher]
 llm = ChatOpenAI(model="gpt-4o")
 llm_with_tools = llm.bind_tools(tools)
 
-sys_msg = SystemMessage(content="You are a node in a workflow tasked with interacting with a memory storage in a desired way based on an input.")
+sys_msg = SystemMessage(content="You are a node in a workflow tasked with " \
+"interacting with a memory storage in a desired way based on an input. The only exception is if the user asks to track somebody, " \
+"you must initiate a real time command via the redis publisher.")
 
 # LLM node: invokes the LLM with bound tools
 def llm_node(state: State):
@@ -114,9 +178,9 @@ graph = (
 )
 
 
-messages = [HumanMessage(content="Store Bacem with value [0.1, 0.2, 0.3, 0.4]. After that, rename the key Bacem to Phil")]
-result = graph.invoke({"messages": messages})
-print(result)
+# messages = [HumanMessage(content="Store Bacem with value [0.1, 0.2, 0.3, 0.4]. After that, rename the key Bacem to Phil")]
+# result = graph.invoke({"messages": messages})
+# print(result)
 
 # def fetch_from_store(state: FaceEmbeddingState) -> FaceEmbeddingState:
 #     if not state.get("temp_key"):
