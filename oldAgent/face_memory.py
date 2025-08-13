@@ -2,7 +2,7 @@ import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 from concurrent.futures import ThreadPoolExecutor
 from langgraph_sdk import get_sync_client
-
+import threading
 
 
 class FaceMemory:
@@ -12,6 +12,7 @@ class FaceMemory:
         self.threshold = threshold
         self.executor = ThreadPoolExecutor(max_workers=4)
         self.client = get_sync_client(url="http://localhost:8123")
+        self.lock = threading.Lock()
 
     def push_to_graph(self, face_id: int, emb: np.ndarray):
         def task():
@@ -55,5 +56,18 @@ class FaceMemory:
         self.next_id += 1
 
         # push new face into Redis
-        self.push_to_graph(face_id, emb)
+        # self.push_to_graph(face_id, emb)
         return face_id
+    
+
+    def rename_face(self, old_id, new_id):
+        with self.lock:
+            for entry in self.memory:
+                if entry["id"] == old_id:
+                    new_entry = dict(entry)
+                    new_entry["id"] = new_id
+                    self.memory.append(new_entry)
+                    self.memory.remove(entry)
+                    print(f"✅ Renamed {old_id} → {new_id}")
+                    return True
+        return False
