@@ -44,7 +44,7 @@ class FaceMemory:
                 return self.memory[best]["id"]
 
             # update langgraph for this existing face
-            # self.push_to_graph(face_id, emb)
+            self.push_to_graph(face_id, emb)
             return face_id
 
 
@@ -56,7 +56,7 @@ class FaceMemory:
         self.next_id += 1
 
         # push new face into Redis
-        # self.push_to_graph(face_id, emb)
+        self.push_to_graph(face_id, emb)
         return face_id
     
 
