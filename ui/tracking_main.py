@@ -7,7 +7,7 @@ from serial import Serial
 import struct
 
 from ui import tracking_utils 
-from ui import redis_helper
+from ui.redis_helper import RedisHelper
 
 from insightface.app import FaceAnalysis
 
@@ -24,23 +24,23 @@ face_memory = FaceMemory()
 
 
 
-# # instantiate redis helper
-# redis_helper = redis_helper.RedisHelper(host="localhost", port=6379)
-# selected_object_id = None
+# instantiate redis helper
+redis_helper = RedisHelper(host="localhost", port=6379)
+selected_object_id = None
 
-# def handle_command(data: dict):
-#     global selected_object_id
-#     cmd = data.get("type")
-#     if cmd == "track":
-#         # data["target"] might be an ID or name
-#         selected_object_id = data["target"]
-#         print(f"🔁 Now tracking ID {selected_object_id}")
-#     elif cmd == "rename":
-#         # you’ll wire this into your local mapping later
-#         print(f"🔁 Rename request: ID {data['id']} → {data['new_name']}")
+def handle_command(data):
+    global selected_object_id
+    cmd = data.get("type")
+    if cmd == "track":
+        # data["target"] might be an ID or name
+        selected_object_id = data["target"]
+        print(f"🔁 Now tracking ID {selected_object_id}")
+    # elif cmd == "rename":
+    #     # you’ll wire this into your local mapping later
+    #     print(f"🔁 Rename request: ID {data['id']} → {data['new_name']}")
 
-# redis_helper.subscribe("realtime_commands", handle_command)
-# redis_helper.start()
+redis_helper.subscribe("realtime_commands", handle_command)
+redis_helper.start()
 
 
 #
