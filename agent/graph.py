@@ -3,8 +3,9 @@ from langchain_core.tools import tool
 from langchain_openai import ChatOpenAI
 
 from langgraph.graph import StateGraph, MessagesState, START, END
-from langgraph.prebuilt import tools_condition, ToolNode, InjectedStore
+from langgraph.prebuilt import create_react_agent, tools_condition, ToolNode, InjectedStore
 from langgraph.store.base import BaseStore
+from langgraph_supervisor import create_supervisor
 
 import redis
 import json
@@ -101,11 +102,31 @@ def redis_publisher(key, value):
 
 
 
+store_handler = create_react_agent(
+    model="openai:gpt-4o",
+    tools=[store_key, delete_key, get_key, rename_key],
+    prompt="You are a flight booking assistant",
+    name="store_handler"
+)
+
+command_handler = create_react_agent(
+    model="openai:gpt-4o",
+    tools=[redis_publisher],
+    prompt="You are a flight booking assistant",
+    name="store_handler"
+)
 
 
 
 
-
+supervisor = create_supervisor(
+    agents=[store_handler, command_handler],
+    model=ChatOpenAI(model="gpt-4o"),
+    prompt=(
+        "You manage a hotel booking assistant and a"
+        "flight booking assistant. Assign work to them."
+    )
+).compile()
 
 
 
