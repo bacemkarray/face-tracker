@@ -174,6 +174,11 @@ redis_client = redis.Redis(host="langgraph-redis", port=6379, db=0, decode_respo
 
 @tool
 def track_face(target: str, name: str | None = None) -> str:
+    """Start real-time tracking of a face.
+
+    Publishes a 'track' command to the Redis channel 'realtime_commands'.
+    """
+        
     payload = {"type": "track", "data": {"target": target}}
     if name:
         payload["data"]["name"] = name
@@ -182,12 +187,22 @@ def track_face(target: str, name: str | None = None) -> str:
 
 @tool
 def stop_tracking(target: str) -> str:
+    """Stop real-time tracking of a face.
+
+    Publishes a 'stop' command to the Redis channel 'realtime_commands'.
+    """
+
     payload = {"type": "stop", "data": {"target": target}}
     redis_client.publish("realtime_commands", json.dumps(payload))
     return f"Stopped tracking {target}"
 
 @tool
 def send_rename(target: str, new_name: str) -> str:
+    """Send a real-time rename command for a tracked face.
+
+    Publishes a 'rename' command to the Redis channel 'realtime_commands'.
+    """
+    
     payload = {"type": "rename", "data": {"target": target, "new_name": new_name}}
     redis_client.publish("realtime_commands", json.dumps(payload))
     return f"Sent rename command for {target} to {new_name}"
