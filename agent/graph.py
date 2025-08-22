@@ -14,21 +14,6 @@ from typing_extensions import TypedDict
 
 
 
-
-# # Define input and output state schemas
-# class InputState(TypedDict):
-#     id: str
-#     embedding: Optional[List[float]]
-
-# class OutputState(TypedDict):
-#     message: str
-#     embedding: Optional[List[float]]
-
-# class OverallState(InputState, OutputState):
-#     pass
-
-# no point separating for now.
-
 class State(MessagesState):
     id: str
     embedding: Optional[List[float]]
@@ -176,34 +161,3 @@ graph = (
     .add_edge("tools", "llm_node")
     .compile()
 )
-
-
-# messages = [HumanMessage(content="Store Bacem with value [0.1, 0.2, 0.3, 0.4]. After that, rename the key Bacem to Phil")]
-# result = graph.invoke({"messages": messages})
-# print(result)
-
-# def fetch_from_store(state: FaceEmbeddingState) -> FaceEmbeddingState:
-#     if not state.get("temp_key"):
-#         return {"result": "No temp_key provided"}
-#     # Call get_key tool via chain
-#     value = llm_with_tools.invoke()
-#     return {"store_value": value}
-
-
-# # To store an embedding
-# input_data_store = {
-#     "id": "user123",
-#     "command": "store",
-#     "embedding": [0.1, 0.2, 0.3, 0.4],
-# }
-
-# result_store = graph.invoke(input=input_data_store)
-# print(result_store)
-
-# input_data_retrieve = {
-#     "id": "user123",
-#     "command": "retrieve",
-# }
-
-# result_retrieve = graph.invoke(input=input_data_retrieve)
-# print(result_retrieve)
