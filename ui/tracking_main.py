@@ -26,16 +26,30 @@ face_memory = FaceMemory()
 redis_helper = RedisHelper(host="localhost", port=6379)
 selected_object_id = None
 
-def handle_command(data):
+def handle_command(message):
     global selected_object_id
-    # cmd = data.get("track")
-    # if cmd == "track":
-        # data["target"] might be an ID or name
-    selected_object_id = data["data"]
-    print(f"🔁 Now tracking ID {selected_object_id}")
-    # elif cmd == "rename":
-    #     # you’ll wire this into your local mapping later
-    #     print(f"🔁 Rename request: ID {data['id']} → {data['new_name']}")
+    cmd_type = message.get("type")
+    payload = message.get("data", {})
+
+    if cmd_type == "track":
+        selected_object_id = payload.get("target")
+        print(f"🔁 Now tracking ID {selected_object_id}")
+
+    elif cmd_type == "stop":
+        target = payload.get("target")
+        print(f"🛑 Stopped tracking {target}")
+        if selected_object_id == target:
+            selected_object_id = None
+
+    elif cmd_type == "rename":
+        old = payload.get("target")
+        new = payload.get("new_name")
+        print(f"✏️ Rename request: ID {old} → {new}")
+        # later you can wire this into face_memory.rename_face
+
+    else:
+        print(f"[WARN] Unknown command: {message}")
+
 
 redis_helper.subscribe("realtime_commands", handle_command)
 redis_helper.start()
