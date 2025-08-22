@@ -6,6 +6,7 @@ from langgraph.graph import StateGraph, MessagesState, START, END
 from langgraph.prebuilt import create_react_agent, tools_condition, ToolNode, InjectedStore
 from langgraph.store.base import BaseStore
 from langgraph_supervisor import create_supervisor
+from pydantic import BaseModel, Field
 
 import redis
 import json
@@ -27,12 +28,10 @@ class State(MessagesState):
 
 
 
-from pydantic import BaseModel, Field
-from typing import Literal, Optional
+
 
 
 # Storage handoff schema
-
 class StoragePayload(BaseModel):
     action: Literal["store", "get", "rename", "delete"] = Field(..., description="Action to perform")
     face_id: Optional[str] = Field(None, description="Face ID (required for rename/get/delete)")
@@ -40,6 +39,14 @@ class StoragePayload(BaseModel):
     metadata: Optional[dict] = Field(None, description="Optional metadata")
     old_key: Optional[str] = Field(None, description="Old key (rename only)")
     new_key: Optional[str] = Field(None, description="New key (rename only)")
+
+
+# Realtime handoff schema
+class RealtimePayload(BaseModel):
+    action: Literal["track", "stop", "rename"] = Field(..., description="Action to perform")
+    target: str = Field(..., description="Face ID or name")
+    new_name: Optional[str] = Field(None, description="New name (rename only)")
+
 
 
 @tool("handoff_to_storage", args_schema=StoragePayload, return_direct=True)
@@ -58,17 +65,6 @@ def handoff_to_storage(payload: StoragePayload) -> str:
         return f"Unknown storage action: {p.action}"
 
 
-
-
-
-
-
-# Realtime handoff schema
-
-class RealtimePayload(BaseModel):
-    action: Literal["track", "stop", "rename"] = Field(..., description="Action to perform")
-    target: str = Field(..., description="Face ID or name")
-    new_name: Optional[str] = Field(None, description="New name (rename only)")
 
 @tool("handoff_to_realtime", args_schema=RealtimePayload, return_direct=True)
 def handoff_to_realtime(payload: RealtimePayload) -> str:
@@ -225,20 +221,19 @@ def send_rename(target: str, new_name: str) -> str:
 store_handler = create_react_agent(
     model="openai:gpt-4o",
     tools=[store_key, delete_key, get_key, rename_key],
-    prompt="You are a flight booking assistant",
     name="store_handler"
 )
 
 command_handler = create_react_agent(
     model="openai:gpt-4o",
-    tools=[redis_publisher],
-    prompt="You are a flight booking assistant",
+    tools=[track_face, stop_tracking, send_rename],
     name="command_handler"
 )
 
 
-# Define handoff tools for supervisor
-handoff_tools = [handoff_to_storage, handoff_to_realtime]
+
+
+
 
 supervisor_prompt = """
 You are a supervisor agent routing user requests to specialized agents.
@@ -259,7 +254,7 @@ Do not do any work yourself; delegate all tasks to the sub-agents.
 supervisor = create_supervisor(
     agents=[store_handler, command_handler],
     model=ChatOpenAI(model="gpt-4o"),
-    tools=handoff_tools,
+    tools=[handoff_to_storage, handoff_to_realtime],
     prompt=supervisor_prompt,
     name="supervisor"
 )
