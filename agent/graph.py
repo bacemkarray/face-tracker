@@ -16,17 +16,9 @@ from typing_extensions import TypedDict
 
 
 
-class State(MessagesState):
-    id: str
-    embedding: Optional[List[float]]
-
-
-
-
-
-
-
-
+# class State(MessagesState):
+#     id: str
+#     embedding: Optional[List[float]]
 
 
 
@@ -206,8 +198,7 @@ def send_rename(target: str, new_name: str) -> str:
 
 
 
-
-
+# Create agents
 store_handler = create_react_agent(
     model="openai:gpt-4o",
     tools=[store_key, delete_key, get_key, rename_key],
@@ -221,10 +212,7 @@ command_handler = create_react_agent(
 )
 
 
-
-
-
-
+# Create supervisor
 supervisor_prompt = """
 You are a supervisor agent routing user requests to specialized agents.
 
@@ -247,29 +235,6 @@ supervisor = create_supervisor(
     prompt=supervisor_prompt,
     name="supervisor"
 )
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
