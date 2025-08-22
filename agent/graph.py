@@ -136,28 +136,28 @@ def redis_publisher(key, value):
 
 
 
-tools = [store_key, delete_key, get_key, rename_key, redis_publisher]
-llm = ChatOpenAI(model="gpt-4o")
-llm_with_tools = llm.bind_tools(tools)
+# tools = [store_key, delete_key, get_key, rename_key, redis_publisher]
+# llm = ChatOpenAI(model="gpt-4o")
+# llm_with_tools = llm.bind_tools(tools)
 
-sys_msg = SystemMessage(content="You are a node in a workflow tasked with " \
-"interacting with a memory storage in a desired way based on an input. The only exception is if the user asks to track somebody, " \
-"you must initiate a real time command via the redis publisher.")
+# sys_msg = SystemMessage(content="You are a node in a workflow tasked with " \
+# "interacting with a memory storage in a desired way based on an input. The only exception is if the user asks to track somebody, " \
+# "you must initiate a real time command via the redis publisher.")
 
-# LLM node: invokes the LLM with bound tools
-def llm_node(state: State):
-    # invoke the LLM with the current messages or input
-    response = llm_with_tools.invoke([sys_msg] + state["messages"])
-    return {"messages": [response]}
+# # LLM node: invokes the LLM with bound tools
+# def llm_node(state: State):
+#     # invoke the LLM with the current messages or input
+#     response = llm_with_tools.invoke([sys_msg] + state["messages"])
+#     return {"messages": [response]}
 
-# Build the graph
-graph = (
-    StateGraph(MessagesState)
-    .add_node("llm_node", llm_node)
-    .add_node("tools", ToolNode(tools))
-    .add_edge(START, "llm_node")
-    .add_conditional_edges("llm_node", tools_condition)
-    .add_edge("llm_node", END)
-    .add_edge("tools", "llm_node")
-    .compile()
-)
+# # Build the graph
+# graph = (
+#     StateGraph(MessagesState)
+#     .add_node("llm_node", llm_node)
+#     .add_node("tools", ToolNode(tools))
+#     .add_edge(START, "llm_node")
+#     .add_conditional_edges("llm_node", tools_condition)
+#     .add_edge("llm_node", END)
+#     .add_edge("tools", "llm_node")
+#     .compile()
+# )
