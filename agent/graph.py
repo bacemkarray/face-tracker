@@ -209,20 +209,36 @@ command_handler = create_react_agent(
     model="openai:gpt-4o",
     tools=[redis_publisher],
     prompt="You are a flight booking assistant",
-    name="store_handler"
+    name="command_handler"
 )
 
+
+# Define handoff tools for supervisor
+handoff_tools = [handoff_to_storage, handoff_to_realtime]
+
+supervisor_prompt = """
+You are a supervisor agent routing user requests to specialized agents.
+
+Routing rules:
+- If user says "store", "add", or "save embedding", call handoff_to_storage with action="store".
+- If user says "rename X to Y", call handoff_to_storage with action="rename".
+- If user says "track", "focus", or "follow" NAME or ID, call handoff_to_realtime with action="track".
+- If user says "stop tracking", call handoff_to_realtime with action="stop".
+
+Fill the handoff tool arguments exactly as per their schemas.
+
+Do not do any work yourself; delegate all tasks to the sub-agents.
+"""
 
 
 
 supervisor = create_supervisor(
     agents=[store_handler, command_handler],
     model=ChatOpenAI(model="gpt-4o"),
-    prompt=(
-        "You manage a hotel booking assistant and a"
-        "flight booking assistant. Assign work to them."
-    )
-).compile()
+    tools=handoff_tools,
+    prompt=supervisor_prompt,
+    name="supervisor"
+)
 
 
 
