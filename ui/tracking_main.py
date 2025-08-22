@@ -44,8 +44,8 @@ def handle_command(message):
     elif cmd_type == "rename":
         old = payload.get("target")
         new = payload.get("new_name")
-        print(f"✏️ Rename request: ID {old} → {new}")
-        # later you can wire this into face_memory.rename_face
+        print(f"✏️ Rename request: ID {old} -> {new}")
+        face_memory.rename_face(old, new)
 
     else:
         print(f"[WARN] Unknown command: {message}")
