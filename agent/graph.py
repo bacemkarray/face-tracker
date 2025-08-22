@@ -57,6 +57,12 @@ def handoff_to_storage(payload: StoragePayload) -> str:
     else:
         return f"Unknown storage action: {p.action}"
 
+
+
+
+
+
+
 # Realtime handoff schema
 
 class RealtimePayload(BaseModel):
@@ -114,7 +120,7 @@ def handoff_to_realtime(payload: RealtimePayload) -> str:
 
 
 
-
+#TOOLS FOR STORAGE AGENT
 
 @tool
 def store_key(key, value, store: Annotated[BaseStore, InjectedStore()]):
@@ -176,21 +182,39 @@ def rename_key(old_key: str, new_key: str, store: Annotated[BaseStore, InjectedS
 
 
 
+#TOOLS FOR REALTIME AGENT
 
+redis_client = redis.Redis(host="langgraph-redis", port=6379, db=0, decode_responses=True)
+
+# @tool
+# def redis_publisher(key, value):
+#     """Sends a tracking command to the real-time code."""
+#     client = redis.Redis(host="langgraph-redis", port=6379, db=0, decode_responses=True)
+
+#     message = {"data": key}
+#     payload = json.dumps(message)
+#     client.publish("realtime_commands", payload)
+#     return f"Published {message} to real-time code"
 
 @tool
-def redis_publisher(key, value):
-    """Sends a tracking command to the real-time code."""
-    client = redis.Redis(host="langgraph-redis", port=6379, db=0, decode_responses=True)
+def track_face(target: str, name: str | None = None) -> str:
+    payload = {"type": "track", "data": {"target": target}}
+    if name:
+        payload["data"]["name"] = name
+    redis_client.publish("realtime_commands", json.dumps(payload))
+    return f"Tracking started for {target} with name {name}"
 
-    message = {"data": key}
-    payload = json.dumps(message)
-    client.publish("realtime_commands", payload)
-    return f"Published {message} to real-time code"
+@tool
+def stop_tracking(target: str) -> str:
+    payload = {"type": "stop", "data": {"target": target}}
+    redis_client.publish("realtime_commands", json.dumps(payload))
+    return f"Stopped tracking {target}"
 
-
-
-
+@tool
+def send_rename(target: str, new_name: str) -> str:
+    payload = {"type": "rename", "data": {"target": target, "new_name": new_name}}
+    redis_client.publish("realtime_commands", json.dumps(payload))
+    return f"Sent rename command for {target} to {new_name}"
 
 
 
