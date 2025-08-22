@@ -182,16 +182,6 @@ def rename_key(old_key: str, new_key: str, store: Annotated[BaseStore, InjectedS
 
 redis_client = redis.Redis(host="langgraph-redis", port=6379, db=0, decode_responses=True)
 
-# @tool
-# def redis_publisher(key, value):
-#     """Sends a tracking command to the real-time code."""
-#     client = redis.Redis(host="langgraph-redis", port=6379, db=0, decode_responses=True)
-
-#     message = {"data": key}
-#     payload = json.dumps(message)
-#     client.publish("realtime_commands", payload)
-#     return f"Published {message} to real-time code"
-
 @tool
 def track_face(target: str, name: str | None = None) -> str:
     payload = {"type": "track", "data": {"target": target}}
@@ -248,7 +238,6 @@ Fill the handoff tool arguments exactly as per their schemas.
 
 Do not do any work yourself; delegate all tasks to the sub-agents.
 """
-
 
 
 supervisor = create_supervisor(
