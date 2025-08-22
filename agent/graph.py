@@ -32,7 +32,6 @@ class StoragePayload(BaseModel):
     old_key: Optional[str] = Field(None, description="Old key (rename only)")
     new_key: Optional[str] = Field(None, description="New key (rename only)")
 
-
 # Realtime handoff schema
 class RealtimePayload(BaseModel):
     action: Literal["track", "stop", "rename"] = Field(..., description="Action to perform")
@@ -40,10 +39,10 @@ class RealtimePayload(BaseModel):
     new_name: Optional[str] = Field(None, description="New name (rename only)")
 
 
-
 @tool("handoff_to_storage", args_schema=StoragePayload, return_direct=True)
 def handoff_to_storage(payload: StoragePayload) -> str:
     # Translate handoff payload to storage tool calls
+    """Route a storage-related request to the storage agent."""
     p = payload
     if p.action == "store":
         return store_key.invoke({"face_id": p.face_id, "embedding": p.embedding, "metadata": p.metadata})
@@ -56,10 +55,9 @@ def handoff_to_storage(payload: StoragePayload) -> str:
     else:
         return f"Unknown storage action: {p.action}"
 
-
-
 @tool("handoff_to_realtime", args_schema=RealtimePayload, return_direct=True)
 def handoff_to_realtime(payload: RealtimePayload) -> str:
+    """Route a real-time tracking request to the realtime agent."""
     p = payload
     if p.action == "track":
         return track_face.invoke({"target": p.target})
