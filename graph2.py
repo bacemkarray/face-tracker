@@ -12,68 +12,34 @@ from langchain_community.storage.redis import RedisStore
 
 llm = ChatOpenAI(model="gpt-4o").with_structured_output(method="json_mode")
 
-
-prompt_template = """
-You are a task planner for a robotic arm. Convert the following instruction into a list of task objects in JSON format.
-
-Each task should follow this format:
-{{
-  "mode": "search" or "track",
-  "duration": optional float (seconds),
-  "target": optional string (person label like "dad" or "unknown_3") or null if not applicable
-}}
-
-Examples:
-
-Input: search for 15 seconds
-Output: [
-  {{"mode": "search", "target": null, "duration": 15}},
-]
-
-Input: follow dad for 10 seconds
-Output: [
-  {{"mode": "track", "target": "dad", "duration": 10}}
-]
-
-Input: {instructions}
-Output:
-"""
-
-
-# -------- SCHEMA -------- #
-class Task(TypedDict):
-  mode: str
-  duration: float = None
-  target: str = None
-  
-class InputState(TypedDict):
-  instructions: str
-
-class OutputState(TypedDict):
-  task: Optional[Task]
-  face_embedding: Optional[Union[str, List[float]]]  # Adjust type to your embedding format
-  tracking_status: Optional[str]
-
-class OverallState(InputState, OutputState):
-  pass
-
-
-# -------- NODES -------- #
-def generate_task(state : InputState) -> OutputState:
-    instructions = state["instructions"]
-    prompt = prompt_template.format(instructions=instructions)
-    system_message = SystemMessage(content=prompt)
-    response = llm.invoke([system_message])
-    return {"task": response}
+# class State(MessagesState):
+#     id: str
+#     embedding: Optional[List[float]]
 
 
 
-# -------- GRAPH -------- #
-# checkpointer = MemorySaver()
-graph = (
-    StateGraph(OverallState, input_schema=InputState, output_schema=OutputState)
-    .add_node("create_task", generate_task)
-    .add_edge(START, "create_task")
-    .add_edge("create_task", END)
-    .compile()
-)
+# tools = [store_key, delete_key, get_key, rename_key, redis_publisher]
+# llm = ChatOpenAI(model="gpt-4o")
+# llm_with_tools = llm.bind_tools(tools)
+
+# sys_msg = SystemMessage(content="You are a node in a workflow tasked with " \
+# "interacting with a memory storage in a desired way based on an input. The only exception is if the user asks to track somebody, " \
+# "you must initiate a real time command via the redis publisher.")
+
+# # LLM node: invokes the LLM with bound tools
+# def llm_node(state: State):
+#     # invoke the LLM with the current messages or input
+#     response = llm_with_tools.invoke([sys_msg] + state["messages"])
+#     return {"messages": [response]}
+
+# # Build the graph
+# graph = (
+#     StateGraph(MessagesState)
+#     .add_node("llm_node", llm_node)
+#     .add_node("tools", ToolNode(tools))
+#     .add_edge(START, "llm_node")
+#     .add_conditional_edges("llm_node", tools_condition)
+#     .add_edge("llm_node", END)
+#     .add_edge("tools", "llm_node")
+#     .compile()
+# )
