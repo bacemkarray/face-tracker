@@ -15,7 +15,7 @@ import json
 from typing import Optional, Literal, List, Annotated, Dict
 from typing_extensions import TypedDict
 
-
+# https://smith.langchain.com/studio/?baseUrl=http://127.0.0.1:8123
 
 # class State(MessagesState):
 #     id: str
@@ -98,8 +98,8 @@ def create_custom_handoff_tool(*, agent_name: str, name: str | None, description
     return handoff_tool
 
 
-handoff_to_storage = create_custom_handoff_tool(agent_name="store_handler", name="transfer to store agent", description="Delegate to storage agent")
-handoff_to_realtime = create_custom_handoff_tool(agent_name="command_handler", name="transfer to realtime command agent", description="Delegate to realtime agent")
+handoff_to_storage = create_custom_handoff_tool(agent_name="store_handler", name="handoff_to_storage", description="Delegate to storage agent")
+handoff_to_realtime = create_custom_handoff_tool(agent_name="command_handler", name="handoff_to_realtime", description="Delegate to realtime agent")
 
 
 
@@ -277,10 +277,7 @@ supervisor = create_supervisor(
     tools=[handoff_to_storage, handoff_to_realtime],
     prompt=supervisor_prompt,
     name="supervisor"
-)
-
-
-
+).compile()
 
 
 
