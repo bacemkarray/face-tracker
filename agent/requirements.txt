@@ -1,5 +1,7 @@
 langgraph
+langgraph_supervisor
 langchain-core
 langchain-community
 langchain-openai
+pydantic
 redis
