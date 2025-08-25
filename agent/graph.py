@@ -1,9 +1,10 @@
 from langchain_core.messages import SystemMessage, HumanMessage
-from langchain_core.tools import tool
+from langchain_core.tools import tool, InjectedToolCallId
 from langchain_openai import ChatOpenAI
 
+from langgraph.types import Command, Send
 from langgraph.graph import StateGraph, MessagesState, START, END
-from langgraph.prebuilt import create_react_agent, tools_condition, ToolNode, InjectedStore
+from langgraph.prebuilt import create_react_agent, InjectedStore, InjectedState
 from langgraph.store.base import BaseStore
 from langgraph_supervisor import create_supervisor
 from pydantic import BaseModel, Field
@@ -11,7 +12,7 @@ from pydantic import BaseModel, Field
 import redis
 import json
 
-from typing import Optional, Literal, List, Annotated
+from typing import Optional, Literal, List, Annotated, Dict
 from typing_extensions import TypedDict
 
 
@@ -39,39 +40,66 @@ class RealtimePayload(BaseModel):
     new_name: Optional[str] = Field(None, description="New name (rename only)")
 
 
-@tool("handoff_to_storage", args_schema=StoragePayload, return_direct=True)
-def handoff_to_storage(payload: StoragePayload) -> str:
-    # Translate handoff payload to storage tool calls
-    """Route a storage-related request to the storage agent."""
-    p = payload
-    if p.action == "store":
-        return store_key.invoke({"face_id": p.face_id, "embedding": p.embedding, "metadata": p.metadata})
-    elif p.action == "get":
-        return get_key.invoke({"key": p.face_id})
-    elif p.action == "rename":
-        return rename_key.invoke({"old_key": p.old_key, "new_key": p.new_key})
-    elif p.action == "delete":
-        return delete_key.invoke({"key": p.face_id})
-    else:
-        return f"Unknown storage action: {p.action}"
+# @tool("handoff_to_storage", args_schema=StoragePayload, return_direct=True)
+# def handoff_to_storage(payload: StoragePayload) -> str:
+#     # Translate handoff payload to storage tool calls
+#     """Route a storage-related request to the storage agent."""
+#     p = payload
+#     if p.action == "store":
+#         return store_key.invoke({"face_id": p.face_id, "embedding": p.embedding, "metadata": p.metadata})
+#     elif p.action == "get":
+#         return get_key.invoke({"key": p.face_id})
+#     elif p.action == "rename":
+#         return rename_key.invoke({"old_key": p.old_key, "new_key": p.new_key})
+#     elif p.action == "delete":
+#         return delete_key.invoke({"key": p.face_id})
+#     else:
+#         return f"Unknown storage action: {p.action}"
 
-@tool("handoff_to_realtime", args_schema=RealtimePayload, return_direct=True)
-def handoff_to_realtime(payload: RealtimePayload) -> str:
-    """Route a real-time tracking request to the realtime agent."""
-    p = payload
-    if p.action == "track":
-        return track_face.invoke({"target": p.target})
-    elif p.action == "stop":
-        return stop_tracking.invoke({"target": p.target})
-    elif p.action == "rename":
-        if p.new_name is None:
-            return "Error: new_name is required for rename action"
-        return send_rename.invoke({"target": p.target, "new_name": p.new_name})
-    else:
-        return f"Unknown realtime action: {p.action}"
+# @tool("handoff_to_realtime", args_schema=RealtimePayload, return_direct=True)
+# def handoff_to_realtime(payload: RealtimePayload) -> str:
+#     """Route a real-time tracking request to the realtime agent."""
+#     p = payload
+#     if p.action == "track":
+#         return track_face.invoke({"target": p.target})
+#     elif p.action == "stop":
+#         return stop_tracking.invoke({"target": p.target})
+#     elif p.action == "rename":
+#         if p.new_name is None:
+#             return "Error: new_name is required for rename action"
+#         return send_rename.invoke({"target": p.target, "new_name": p.new_name})
+#     else:
+#         return f"Unknown realtime action: {p.action}"
 
 
+def create_custom_handoff_tool(*, agent_name: str, name: str | None, description: str | None):
 
+    @tool(name, description=description)
+    def handoff_tool(
+        # The payload is the input to the handoff tool, matching your schema
+        payload: Annotated[StoragePayload | RealtimePayload, "Payload for handoff"],
+        # Inject current state and tool call id (ignored by LLM)
+        state: Annotated[MessagesState, InjectedState],
+        tool_call_id: Annotated[str, InjectedToolCallId],
+    ) -> Command:
+        # Create a user message with the payload serialized as JSON or string
+        task_description_message = {
+            "role": "user",
+            "content": f"Task for {agent_name}: {payload.model_dump_json()}"
+        }
+        # Prepare the input state for the next agent, replacing messages with the task description
+        agent_input = {**state, "messages": [task_description_message]}
+        # Return a Command that sends control to the target agent with the prepared input
+        return Command(
+            goto=[Send(agent_name, agent_input)],
+            graph=Command.PARENT,
+        )
+
+    return handoff_tool
+
+
+handoff_to_storage = create_custom_handoff_tool(agent_name="store_handler", name="transfer to store agent", description="Delegate to storage agent")
+handoff_to_realtime = create_custom_handoff_tool(agent_name="command_handler", name="transfer to realtime command agent", description="Delegate to realtime agent")
 
 
 
@@ -162,7 +190,7 @@ def rename_key(old_key: str, new_key: str, store: Annotated[BaseStore, InjectedS
     store.put(namespace, new_key, old_entry.value)
     # Delete old entry
     store.delete(namespace, old_key)
-    return f"Renamed {old_key} to {new_key}"
+    return f"Renamed {old_key} to {new_key}" 
 
 
 
