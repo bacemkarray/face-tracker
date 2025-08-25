@@ -17,11 +17,6 @@ from typing_extensions import TypedDict
 
 # https://smith.langchain.com/studio/?baseUrl=http://127.0.0.1:8123
 
-# class State(MessagesState):
-#     id: str
-#     embedding: Optional[List[float]]
-
-
 
 
 # Storage handoff schema
@@ -39,37 +34,6 @@ class RealtimePayload(BaseModel):
     target: str = Field(..., description="Face ID or name")
     new_name: Optional[str] = Field(None, description="New name (rename only)")
 
-
-# @tool("handoff_to_storage", args_schema=StoragePayload, return_direct=True)
-# def handoff_to_storage(payload: StoragePayload) -> str:
-#     # Translate handoff payload to storage tool calls
-#     """Route a storage-related request to the storage agent."""
-#     p = payload
-#     if p.action == "store":
-#         return store_key.invoke({"face_id": p.face_id, "embedding": p.embedding, "metadata": p.metadata})
-#     elif p.action == "get":
-#         return get_key.invoke({"key": p.face_id})
-#     elif p.action == "rename":
-#         return rename_key.invoke({"old_key": p.old_key, "new_key": p.new_key})
-#     elif p.action == "delete":
-#         return delete_key.invoke({"key": p.face_id})
-#     else:
-#         return f"Unknown storage action: {p.action}"
-
-# @tool("handoff_to_realtime", args_schema=RealtimePayload, return_direct=True)
-# def handoff_to_realtime(payload: RealtimePayload) -> str:
-#     """Route a real-time tracking request to the realtime agent."""
-#     p = payload
-#     if p.action == "track":
-#         return track_face.invoke({"target": p.target})
-#     elif p.action == "stop":
-#         return stop_tracking.invoke({"target": p.target})
-#     elif p.action == "rename":
-#         if p.new_name is None:
-#             return "Error: new_name is required for rename action"
-#         return send_rename.invoke({"target": p.target, "new_name": p.new_name})
-#     else:
-#         return f"Unknown realtime action: {p.action}"
 
 
 def create_custom_handoff_tool(*, agent_name: str, name: str | None, description: str | None):
@@ -97,45 +61,12 @@ def create_custom_handoff_tool(*, agent_name: str, name: str | None, description
 
     return handoff_tool
 
-
 handoff_to_storage = create_custom_handoff_tool(agent_name="store_handler", name="handoff_to_storage", description="Delegate to storage agent")
 handoff_to_realtime = create_custom_handoff_tool(agent_name="command_handler", name="handoff_to_realtime", description="Delegate to realtime agent")
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #TOOLS FOR STORAGE AGENT
-
 @tool
 def store_key(key, value, store: Annotated[BaseStore, InjectedStore()]):
     """Stores a key-value pair in the store.
@@ -147,7 +78,6 @@ def store_key(key, value, store: Annotated[BaseStore, InjectedStore()]):
     namespace = ("face_embeddings",)
     store.put(namespace, key, value)
     return f"Stored face embedding of {key}"
-
 
 @tool
 def delete_key(key: str, store: Annotated[BaseStore, InjectedStore()]):
@@ -194,10 +124,7 @@ def rename_key(old_key: str, new_key: str, store: Annotated[BaseStore, InjectedS
 
 
 
-
-
 #TOOLS FOR REALTIME AGENT
-
 redis_client = redis.Redis(host="langgraph-redis", port=6379, db=0, decode_responses=True)
 
 @tool
@@ -237,8 +164,6 @@ def send_rename(target: str, new_name: str) -> str:
 
 
 
-
-
 # Create agents
 store_handler = create_react_agent(
     model="openai:gpt-4o",
@@ -251,7 +176,6 @@ command_handler = create_react_agent(
     tools=[track_face, stop_tracking, send_rename],
     name="command_handler"
 )
-
 
 # Create supervisor
 supervisor_prompt = """
@@ -278,32 +202,3 @@ supervisor = create_supervisor(
     prompt=supervisor_prompt,
     name="supervisor"
 ).compile()
-
-
-
-
-# tools = [store_key, delete_key, get_key, rename_key, redis_publisher]
-# llm = ChatOpenAI(model="gpt-4o")
-# llm_with_tools = llm.bind_tools(tools)
-
-# sys_msg = SystemMessage(content="You are a node in a workflow tasked with " \
-# "interacting with a memory storage in a desired way based on an input. The only exception is if the user asks to track somebody, " \
-# "you must initiate a real time command via the redis publisher.")
-
-# # LLM node: invokes the LLM with bound tools
-# def llm_node(state: State):
-#     # invoke the LLM with the current messages or input
-#     response = llm_with_tools.invoke([sys_msg] + state["messages"])
-#     return {"messages": [response]}
-
-# # Build the graph
-# graph = (
-#     StateGraph(MessagesState)
-#     .add_node("llm_node", llm_node)
-#     .add_node("tools", ToolNode(tools))
-#     .add_edge(START, "llm_node")
-#     .add_conditional_edges("llm_node", tools_condition)
-#     .add_edge("llm_node", END)
-#     .add_edge("tools", "llm_node")
-#     .compile()
-# )
