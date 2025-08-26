@@ -1,12 +1,12 @@
 from langchain_core.messages import SystemMessage, HumanMessage
 from langchain_core.tools import tool, InjectedToolCallId
 from langchain_openai import ChatOpenAI
-
+from langgraph.config import get_store
 from langgraph.types import Command, Send
 from langgraph.graph import StateGraph, MessagesState, START, END
 from langgraph.prebuilt import create_react_agent, InjectedStore, InjectedState
-from langgraph.store.base import BaseStore
 from langgraph_supervisor import create_supervisor
+from langgraph.store.base import BaseStore
 from pydantic import BaseModel, Field
 
 import redis
@@ -61,8 +61,8 @@ def create_custom_handoff_tool(*, agent_name: str, name: str | None, description
 
     return handoff_tool
 
-handoff_to_storage = create_custom_handoff_tool(agent_name="store_handler", name="handoff_to_storage", description="Delegate to storage agent")
-handoff_to_realtime = create_custom_handoff_tool(agent_name="command_handler", name="handoff_to_realtime", description="Delegate to realtime agent")
+handoff_to_storage = create_custom_handoff_tool(agent_name="store_agent", name="handoff_to_storage", description="Delegate to storage agent")
+handoff_to_realtime = create_custom_handoff_tool(agent_name="command_agent", name="handoff_to_realtime", description="Delegate to realtime agent")
 
 
 
@@ -165,16 +165,18 @@ def send_rename(target: str, new_name: str) -> str:
 
 
 # Create agents
-store_handler = create_react_agent(
+store_agent = create_react_agent(
     model="openai:gpt-4o",
     tools=[store_key, delete_key, get_key, rename_key],
-    name="store_handler"
+    name="store_agent",
+    store=get_store()
 )
 
-command_handler = create_react_agent(
+command_agent = create_react_agent(
     model="openai:gpt-4o",
     tools=[track_face, stop_tracking, send_rename],
-    name="command_handler"
+    name="command_agent",
+    store=get_store()
 )
 
 # Create supervisor
@@ -196,9 +198,31 @@ Always fill the handoff tool arguments exactly as per their schemas and do not a
 
 
 supervisor = create_supervisor(
-    agents=[store_handler, command_handler],
+    agents=[store_agent, command_agent],
     model=ChatOpenAI(model="gpt-4o"),
     tools=[handoff_to_storage, handoff_to_realtime],
     prompt=supervisor_prompt,
     name="supervisor"
 ).compile()
+
+
+# supervisor_agent = create_react_agent(
+#     model="openai:gpt-4o",
+#     tools=[handoff_to_storage, handoff_to_realtime],
+#     prompt=supervisor_prompt,
+#     name="supervisor"
+# )
+
+# # Define the multi-agent supervisor graph
+# supervisor = (
+#     StateGraph(MessagesState)
+#     # NOTE: `destinations` is only needed for visualization and doesn't affect runtime behavior
+#     .add_node(supervisor_agent, destinations=("store_agent", "command_agent", END))
+#     .add_node(store_agent)
+#     .add_node(command_agent)
+#     .add_edge(START, "supervisor")
+#     # always return back to the supervisor
+#     .add_edge("store_agent", "supervisor")
+#     .add_edge("command_agent", "supervisor")
+#     .compile()
+# )
