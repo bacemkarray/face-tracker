@@ -55,8 +55,9 @@ def create_custom_handoff_tool(*, agent_name: str, name: str | None, description
         agent_input = {**state, "messages": [task_description_message]}
         # Return a Command that sends control to the target agent with the prepared input
         return Command(
-            goto=[Send(agent_name, agent_input)],
+            goto=agent_name,
             graph=Command.PARENT,
+            update=agent_input
         )
 
     return handoff_tool
@@ -165,21 +166,98 @@ def send_rename(target: str, new_name: str) -> str:
 
 
 # Create agents
+store_prompt = """
+You are the storage handler. 
+Your only job is to manage face embeddings in persistent storage. 
+You can:
+- store a new embedding under a given key
+- retrieve an embedding by key
+- rename a key
+- delete a key
+
+Always:
+- Use the provided tools to complete the task, never improvise.
+- Reply with a short confirmation message so your supervisor knows the outcome.
+- Never attempt to delegate tasks to other agents.
+"""
+
+command_prompt = """
+You are the realtime command handler. 
+Your only job is to interact with the live face-tracking system by sending Redis commands. 
+You can:
+- track a person by ID or name
+- stop tracking a person
+- rename a tracked person
+
+Always:
+- Use the provided tools to execute the command.
+- Respond with a one-line confirmation of what you did.
+- Never attempt to manage storage or reroute tasks; that is your supervisor’s job.
+"""
+
 store_agent = create_react_agent(
     model="openai:gpt-4o",
     tools=[store_key, delete_key, get_key, rename_key],
     name="store_agent",
-    store=get_store()
+    store=get_store(),
+    prompt=store_prompt
 )
+
+
 
 command_agent = create_react_agent(
     model="openai:gpt-4o",
     tools=[track_face, stop_tracking, send_rename],
     name="command_agent",
-    store=get_store()
+    store=get_store(),
+    prompt=command_prompt
 )
 
-# Create supervisor
+# # Create supervisor
+# supervisor_prompt = """
+# You are a supervisor agent responsible for coordinating communication between specialized sub-agents.
+
+# Your responsibilities:
+# 1. **Intent Understanding**  
+#    - Interpret the user's natural language instructions or system events.
+#    - Decide whether the request is for storage-related tasks or real-time tracking tasks.
+
+# 2. **Delegation**  
+#    - Always route tasks using the correct handoff tool:
+#      - Use `handoff_to_storage` for embedding-related tasks (store, get, delete, rename, query).
+#      - Use `handoff_to_realtime` for tracking-related tasks (track, stop, rename in realtime).
+#    - Construct the tool arguments precisely according to their schemas.
+
+# 3. **Follow-up and Confirmation**  
+#    - After a sub-agent completes an action, summarize the result clearly for the user.
+#    - Example: If the storage agent renames a face, report back:  
+#      "Successfully renamed face `???:3` to `Mary` in the store."
+#    - If the realtime agent confirms tracking started, report back:  
+#      "Now tracking `Mary` in realtime."
+
+# 4. **Chained Actions**  
+#    - Some tasks require multiple steps. Always chain them in order.  
+#      Example:  
+#        - User: "Rename `???:3` to Mary."  
+#        - Step 1: Call storage agent to rename in the store.  
+#        - Step 2: After confirmation, call realtime agent to update tracking reference.  
+#        - Step 3: Report the entire flow back to the user.  
+#    - Never skip reporting intermediate completions.
+
+# 5. **Error Handling**  
+#    - If a sub-agent fails, report the error clearly to the user.  
+#    - Example: "Could not rename face `???:3` because no such ID exists."
+
+# 6. **Rules**  
+#    - Do not perform any action yourself — always delegate.
+#    - Do not hallucinate values. Only use IDs/names/embeddings you were given or that exist in storage.
+#    - Do not loop infinitely. If a task fails after one retry, stop and inform the user.
+
+# Your overall behavior:  
+# - Be structured, precise, and user-facing in your final output.  
+# - Think of yourself as the project manager: the sub-agents do the work, you route and report.
+# """
+
 supervisor_prompt = """
 You are a supervisor agent responsible for routing user requests to specialized agents.
 
@@ -193,9 +271,15 @@ Routing guidelines:
 - If the user wants to store or manage embeddings (e.g., "store", "add", "save embedding", "rename X to Y"), use handoff_to_storage with the appropriate action and parameters.
 - If the user wants to track or manage real-time face tracking (e.g., "track", "focus", "follow", "stop tracking"), use handoff_to_realtime with the appropriate action and parameters.
 
-Always fill the handoff tool arguments exactly as per their schemas and do not attempt to do any work yourself.
-"""
+You must ensure that important relevant information is communicated between the two agents. If an embedding is renamed in the storage, then the command_agent must be aware of this. 
+It is pivotal that this communication exists, otherwise the system will collapse.
 
+Always fill the handoff tool arguments exactly as per their schemas and do not attempt to do any work yourself.
+
+If the user command is incomplete or ambiguous, do not delegate immediately. Instead, ask the user a clarifying question to get the missing information. 
+For example, if the user says "rename the embedding Bacem" or "delete the embedding" without specifying the new name, 
+respond with "What do you want me to rename Bacem to? and "Could you clarify which embedding to delete?" respectively.
+"""
 
 supervisor = create_supervisor(
     agents=[store_agent, command_agent],
