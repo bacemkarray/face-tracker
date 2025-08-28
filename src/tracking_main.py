@@ -9,16 +9,7 @@ import struct
 
 from src import tracking_utils 
 from src.redis_helper import RedisHelper
-
-
 from src.face_memory import FaceMemory
-
-
-face_memory = FaceMemory()
-
-# user_input = input("Give a command that you would like to run: ")
-# command = graph.invoke({"instructions": user_input}) # currently outputs a task to do
-# task_executor.add_task(command['task'])
 
 
 
@@ -50,24 +41,20 @@ def handle_command(message):
     else:
         print(f"[WARN] Unknown command: {message}")
 
-
 redis_helper.subscribe("realtime_commands", handle_command)
 redis_helper.start()
 
-
-#
-# s = Serial(port="COM6", baudrate=115200)
 
 # config
 enable_gpu = True  # Set True if running with CUDA
 show_fps = True  # If True, shows current FPS in top-left corner
 save_video = False  # Set True to save output video
 video_output_path = "tracker_output.avi"  # Output video file name
-model_name = "buffalo_l"
+window_name = "Tracking Window"  # Output window name
+model_name = "buffalo_l" # InsightFace provided model
 
-
+# setup
 face_memory = FaceMemory()
-
 # s = Serial(port="COM6", baudrate=115200)
 
 
@@ -78,9 +65,8 @@ else:
     source=['CPUExecutionProvider']
     ctx=-1
 
-window_name = "Tracking Window"  # Output window name
 
-# loads SCRFD-500MF detector + MobileFaceNet recognizer
+# loads face detector and recognizer 
 app = FaceAnalysis(name=model_name, provider=source)
 app.prepare(ctx_id=ctx, det_size=(640, 640))
 
