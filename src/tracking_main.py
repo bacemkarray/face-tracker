@@ -11,7 +11,7 @@ from src import tracking_utils
 from src.redis_helper import RedisHelper
 
 
-from oldAgent.face_memory import FaceMemory
+from src.face_memory import FaceMemory
 
 
 face_memory = FaceMemory()
