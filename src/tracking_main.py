@@ -7,8 +7,8 @@ from insightface.app import FaceAnalysis
 from serial import Serial
 import struct
 
-from ui import tracking_utils 
-from ui.redis_helper import RedisHelper
+from src import tracking_utils 
+from src.redis_helper import RedisHelper
 
 
 from oldAgent.face_memory import FaceMemory
