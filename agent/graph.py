@@ -1,4 +1,3 @@
-from langchain_core.messages import SystemMessage, HumanMessage
 from langchain_core.tools import tool, InjectedToolCallId
 from langchain_openai import ChatOpenAI
 from langgraph.config import get_store
@@ -18,6 +17,11 @@ from typing_extensions import TypedDict
 # https://smith.langchain.com/studio/?baseUrl=http://127.0.0.1:8123
 
 
+
+# subclassing MessagesState
+class State(MessagesState):
+    id: str
+    embedding: List[float]
 
 # Storage handoff schema
 class StoragePayload(BaseModel):
@@ -69,7 +73,7 @@ handoff_to_realtime = create_custom_handoff_tool(agent_name="command_agent", nam
 
 #TOOLS FOR STORAGE AGENT
 @tool
-def store_key(key, value, store: Annotated[BaseStore, InjectedStore()]):
+def store_key(key: str, value: list, store: Annotated[BaseStore, InjectedStore()]):
     """Stores a key-value pair in the store.
     
     Args:
@@ -123,6 +127,14 @@ def rename_key(old_key: str, new_key: str, store: Annotated[BaseStore, InjectedS
     store.delete(namespace, old_key)
     return f"Renamed {old_key} to {new_key}" 
 
+@tool
+def verify_identity(value: list):
+    """Perform a similarity search
+
+    Args:
+        value: The embedding to search for in the vector space
+    """
+    return "I have not seen this identity"
 
 
 #TOOLS FOR REALTIME AGENT
@@ -165,7 +177,7 @@ def send_rename(target: str, new_name: str) -> str:
 
 
 
-# Create agents
+# prompts
 store_prompt = """
 You are the storage handler. 
 Your only job is to manage face embeddings in persistent storage. 
@@ -174,11 +186,11 @@ You can:
 - retrieve an embedding by key
 - rename a key
 - delete a key
+- verify if a face embedding already exists in storage
 
 Always:
 - Use the provided tools to complete the task, never improvise.
 - Reply with a short confirmation message so your supervisor knows the outcome.
-- Never attempt to delegate tasks to other agents.
 """
 
 command_prompt = """
@@ -194,25 +206,6 @@ Always:
 - Respond with a one-line confirmation of what you did.
 - Never attempt to manage storage or reroute tasks; that is your supervisor’s job.
 """
-
-store_agent = create_react_agent(
-    model="openai:gpt-4o",
-    tools=[store_key, delete_key, get_key, rename_key],
-    name="store_agent",
-    store=get_store(),
-    prompt=store_prompt
-)
-
-
-
-command_agent = create_react_agent(
-    model="openai:gpt-4o",
-    tools=[track_face, stop_tracking, send_rename],
-    name="command_agent",
-    store=get_store(),
-    prompt=command_prompt
-)
-
 
 supervisor_prompt = """
 You are a supervisor agent responsible for routing user requests to specialized agents.
@@ -237,7 +230,26 @@ For example, if the user says "rename the embedding Bacem" or "delete the embedd
 respond with "What do you want me to rename Bacem to? and "Could you clarify which embedding to delete?" respectively.
 """
 
+
+# agents
+store_agent = create_react_agent(
+    model="openai:gpt-4o",
+    tools=[store_key, delete_key, get_key, rename_key],
+    name="store_agent",
+    store=get_store(),
+    prompt=store_prompt
+)
+
+command_agent = create_react_agent(
+    model="openai:gpt-4o",
+    tools=[track_face, stop_tracking, send_rename],
+    name="command_agent",
+    store=get_store(),
+    prompt=command_prompt
+)
+
 supervisor = create_supervisor(
+    state_schema=State,
     agents=[store_agent, command_agent],
     model=ChatOpenAI(model="gpt-4o"),
     tools=[handoff_to_storage, handoff_to_realtime],
