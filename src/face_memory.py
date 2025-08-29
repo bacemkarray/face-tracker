@@ -23,7 +23,7 @@ class FaceMemory:
                     key=str(face_id),
                     value={"embedding": emb.tolist()}
                 )
-                print(f"✅ [sync] Stored    face {face_id}")
+                print(f"✅ [sync] Stored face {face_id}")
             except Exception as e:
                 print(f"🔥 [sync] Failed to store face {face_id}: {e}")
         self.executor.submit(task)
@@ -33,20 +33,13 @@ class FaceMemory:
     def match_or_add(self, emb: np.ndarray) -> int | None:
         if emb is None:
             return None
-        
-        face_id = "???:" + str(self.next_id)
-        
+                
         known = [e["embedding"] for e in self.memory]
         if known:
             sims = cosine_similarity([emb], known)[0]
             best = int(np.argmax(sims))
             if sims[best] > self.threshold:
                 return self.memory[best]["id"]
-
-            # update langgraph for this existing face
-            self.push_to_graph(face_id, emb)
-            return face_id
-
 
         face_id = "???:" + str(self.next_id)
         self.memory.append({
@@ -68,6 +61,6 @@ class FaceMemory:
                     new_entry["id"] = new_id
                     self.memory.append(new_entry)
                     self.memory.remove(entry)
-                    print(f"✅ Renamed {old_id} → {new_id}")
+                    print(f"Renamed {old_id} -> {new_id}")
                     return True
         return False
