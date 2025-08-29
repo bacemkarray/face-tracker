@@ -1,35 +1,44 @@
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 from concurrent.futures import ThreadPoolExecutor
-from langgraph_sdk import get_sync_client
 import threading
+
+from langgraph_sdk import get_sync_client
+from langchain_core.messages import HumanMessage
+
+graph_name = "research-project-agents"
+prompt = "This face has just shown up on the video feed. " \
+"Run a similarity search in the storage to verify if their identity is known. If it is, return their id."
 
 
 class FaceMemory:
-    def __init__(self, threshold: float = 0.4):
+    def __init__(self):
         self.memory: list[dict] = []
         self.next_id = 1
-        self.threshold = threshold
+        self.threshold = 0.4
         self.executor = ThreadPoolExecutor(max_workers=4)
         self.client = get_sync_client(url="http://localhost:8123")
         self.lock = threading.Lock()
 
-    def push_to_graph(self, face_id: int, emb: np.ndarray):
+    def push_to_graph(self, face_id: str, emb: np.ndarray):
         def task():
-            print(f"📤 [sync] Storing face {face_id}")
+            print(f"Invoking graph...")
             try:
-                self.client.store.put_item(
-                    ["face_embeddings"],
-                    key=str(face_id),
-                    value={"embedding": emb.tolist()}
-                )
-                print(f"✅ [sync] Stored face {face_id}")
+                thread = self.client.threads.create()
+                self.client.runs.create(
+                    thread["thread_id"],
+                    graph_name,
+                    input={
+                    "messages":[HumanMessage(prompt)],
+                    "id": face_id,
+                    "embedding": emb.tolist()
+                })
+                print(f"Invocation successful.")
             except Exception as e:
-                print(f"🔥 [sync] Failed to store face {face_id}: {e}")
+                print(f"Failed to invoke graph: {e}")
         self.executor.submit(task)
 
         
-
     def match_or_add(self, emb: np.ndarray) -> int | None:
         if emb is None:
             return None
