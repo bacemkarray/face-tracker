@@ -22,13 +22,13 @@ from typing_extensions import TypedDict
 class State(MessagesState):
     id: str
     embedding: List[float]
+    remaining_steps: Optional[List[str]] # supervisor won't accept this schema unless I include this
 
 # Storage handoff schema
 class StoragePayload(BaseModel):
     action: Literal["store", "get", "rename", "delete"] = Field(..., description="Action to perform")
     face_id: Optional[str] = Field(None, description="Face ID (required for rename/get/delete)")
     embedding: Optional[list[float]] = Field(None, description="Embedding vector (required for store)")
-    metadata: Optional[dict] = Field(None, description="Optional metadata")
     old_key: Optional[str] = Field(None, description="Old key (rename only)")
     new_key: Optional[str] = Field(None, description="New key (rename only)")
 
@@ -47,7 +47,7 @@ def create_custom_handoff_tool(*, agent_name: str, name: str | None, description
         # The payload is the input to the handoff tool, matching your schema
         payload: Annotated[StoragePayload | RealtimePayload, "Payload for handoff"],
         # Inject current state and tool call id (ignored by LLM)
-        state: Annotated[MessagesState, InjectedState],
+        state: Annotated[State, InjectedState],
         tool_call_id: Annotated[str, InjectedToolCallId],
     ) -> Command:
         # Create a user message with the payload serialized as JSON or string
@@ -73,7 +73,7 @@ handoff_to_realtime = create_custom_handoff_tool(agent_name="command_agent", nam
 
 #TOOLS FOR STORAGE AGENT
 @tool
-def store_key(key: str, value: list, store: Annotated[BaseStore, InjectedStore()]):
+def store_key(key: str, value: List, store: Annotated[BaseStore, InjectedStore()]):
     """Stores a key-value pair in the store.
     
     Args:
@@ -128,7 +128,7 @@ def rename_key(old_key: str, new_key: str, store: Annotated[BaseStore, InjectedS
     return f"Renamed {old_key} to {new_key}" 
 
 @tool
-def verify_identity(value: list):
+def verify_identity(value: List):
     """Perform a similarity search
 
     Args:
@@ -234,7 +234,7 @@ respond with "What do you want me to rename Bacem to? and "Could you clarify whi
 # agents
 store_agent = create_react_agent(
     model="openai:gpt-4o",
-    tools=[store_key, delete_key, get_key, rename_key],
+    tools=[store_key, delete_key, get_key, rename_key, verify_identity],
     name="store_agent",
     store=get_store(),
     prompt=store_prompt
