@@ -1,7 +1,7 @@
 {
   "dependencies": ["."],
   "graphs": {
-    "research-project-agent": "./graph2.py:graph"
+    "research-project-agents": "./graph2.py:graph"
   },
   "env": "./.env",
   "image_distro": "wolfi"
