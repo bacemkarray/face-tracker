@@ -127,16 +127,6 @@ def rename_key(old_key: str, new_key: str, store: Annotated[BaseStore, InjectedS
     store.delete(namespace, old_key)
     return f"Renamed {old_key} to {new_key}" 
 
-@tool
-def verify_identity(value: List):
-    """Perform a similarity search
-
-    Args:
-        value: The embedding to search for in the vector space
-    """
-    return "I have not seen this identity"
-
-
 #TOOLS FOR REALTIME AGENT
 redis_client = redis.Redis(host="langgraph-redis", port=6379, db=0, decode_responses=True)
 
@@ -227,14 +217,15 @@ Always fill the handoff tool arguments exactly as per their schemas and do not a
 
 If the user command is incomplete or ambiguous, do not delegate immediately. Instead, ask the user a clarifying question to get the missing information. 
 For example, if the user says "rename the embedding Bacem" or "delete the embedding" without specifying the new name, 
-respond with "What do you want me to rename Bacem to? and "Could you clarify which embedding to delete?" respectively.
+respond with "What do you want me to rename Bacem to? and "Could you clarify which embedding to delete?" respectively. 
+The only exception to this is when you are asked to store an embedding.
 """
 
 
 # agents
 store_agent = create_react_agent(
     model="openai:gpt-4o",
-    tools=[store_key, delete_key, get_key, rename_key, verify_identity],
+    tools=[store_key, delete_key, get_key, rename_key],
     name="store_agent",
     store=get_store(),
     prompt=store_prompt

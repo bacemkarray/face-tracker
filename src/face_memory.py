@@ -8,7 +8,7 @@ from langchain_core.messages import HumanMessage
 
 graph_name = "research-project-agents"
 prompt = "This face has just shown up on the video feed. " \
-"Run a similarity search in the storage to verify if their identity is known. If it is, return their id."
+"Please store the face."
 
 
 class FaceMemory:
