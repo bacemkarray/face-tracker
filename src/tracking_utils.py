@@ -2,8 +2,7 @@ import time
 from typing import Tuple
 
 import cv2
-
-from ultralytics.utils.plotting import Annotator, colors
+from ultralytics.utils.plotting import Annotator
 
 
 def get_center(x1: int, y1: int, x2: int, y2: int) -> Tuple[int, int]:
