@@ -15,7 +15,7 @@ def send_embedding(face_id: int, emb: list[float]):
 
 
 
-def main():
+def main(face_id, emb):
     client = get_sync_client(url="http://localhost:8123")
     
     # namespaces = client.store.list_namespaces(prefix=["face_embeddings"])
@@ -24,12 +24,20 @@ def main():
     # print(namespaces)
     # print(item)
     graph_name = "research-project-agents"
+    prompt = "This face has just shown up on the video feed. " \
+    "Please store the face."
     
+    
+
     thread = client.threads.create()
-    result = client.runs.create(
-        thread["thread_id"],
-        graph_name,
-        input={"messages":[HumanMessage(content="hello just testing something don't worry about this invocation")]})
+    client.runs.create(
+    thread["thread_id"],
+    graph_name,
+    input={
+    "messages":[HumanMessage(prompt)],
+    "id": face_id,
+    "embedding": emb.tolist()
+    })
     print(f"Invocation successful.")
 
 if __name__ == "__main__":
