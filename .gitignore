@@ -172,3 +172,7 @@ hardware/.pio/
 project_log.md
 
 .langgraph_api
+
+graph_invoke_test.py
+graph2.py
+oldAgent/
