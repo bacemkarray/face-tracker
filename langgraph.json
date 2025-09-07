@@ -1,8 +1,0 @@
-{
-  "dependencies": ["."],
-  "graphs": {
-    "research-project-agents": "./graph2.py:graph"
-  },
-  "env": "./.env",
-  "image_distro": "wolfi"
-}
