@@ -6,9 +6,7 @@ import threading
 from langgraph_sdk import get_sync_client
 from langchain_core.messages import HumanMessage
 
-graph_name = "research-project-agents"
-prompt = "This face has just shown up on the video feed. " \
-"Please store the face."
+
 
 
 class FaceMemory:
@@ -24,18 +22,14 @@ class FaceMemory:
         def task():
             print(f"Invoking graph...")
             try:
-                thread = self.client.threads.create()
-                self.client.runs.create(
-                    thread["thread_id"],
-                    graph_name,
-                    input={
-                    "messages":[HumanMessage(prompt)],
-                    "id": face_id,
-                    "embedding": emb.tolist()
-                })
-                print(f"Invocation successful.")
+                self.client.store.put_item(
+                    ["face_embeddings"],
+                    key=str(face_id),
+                    value={"embedding": emb.tolist()}
+                )
+                print(f"Stored face {face_id}")
             except Exception as e:
-                print(f"Failed to invoke graph: {e}")
+                print(f"Failed to store face {face_id}: {e}")
         self.executor.submit(task)
 
         
