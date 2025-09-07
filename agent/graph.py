@@ -1,7 +1,6 @@
-from langchain_core.tools import tool, InjectedToolCallId
-from langchain_openai import ChatOpenAI
+from langchain_core.tools import tool
 from langgraph.config import get_store
-from langgraph.types import Command, Send
+from langgraph.types import Command
 from langgraph.graph import StateGraph, MessagesState, START, END
 from langgraph.prebuilt import create_react_agent, InjectedStore, InjectedState
 from langgraph_supervisor import create_supervisor
@@ -16,13 +15,6 @@ from typing_extensions import TypedDict, Any
 
 # https://smith.langchain.com/studio/?baseUrl=http://127.0.0.1:8123
 
-
-
-# subclassing MessagesState
-class State(MessagesState):
-    id: Optional[str] = None
-    embedding: Optional[List[float]] = None
-    remaining_steps: Optional[List[str]] # supervisor won't accept this schema unless I include this
 
 # Storage handoff schema
 class StoragePayload(BaseModel):
@@ -214,11 +206,8 @@ It is pivotal that this communication exists, otherwise the system will collapse
 
 Always fill the handoff tool arguments exactly as per their schemas and do not attempt to do any work yourself.
 If the user command is incomplete or ambiguous, do not delegate immediately. Instead, ask the user a clarifying question to get the missing information. 
-For example, if the user says "rename the embedding Bacem" or "delete the embedding" without specifying the new name, 
-respond with "What do you want me to rename Bacem to? and "Could you clarify which embedding to delete?" respectively. 
-The only exception to this is when you are asked to store an embedding. Always remember:
-- Embeddings are already available in the state schema when an embedding needs to be stored. 
-- Never ask the user to provide the raw embedding vector. Instead, pass the `embedding` field from the state directly into the tool call.
+For example, if the user asks to "rename this embedding" or "delete the embedding" without specifying a name, 
+respond with "Which embedding would you like renamed? and "Could you clarify which embedding to delete?" respectively. 
 """
 
 
@@ -239,6 +228,13 @@ command_agent = create_react_agent(
     prompt=command_prompt
 )
 
+supervisor_agent = create_react_agent(
+    model="openai:gpt-4o",
+    tools=[handoff_to_storage, handoff_to_realtime],
+    name="supervisor",
+    prompt=supervisor_prompt
+)
+
 # supervisor = create_supervisor(
 #     state_schema=State,
 #     agents=[store_agent, command_agent],
@@ -249,22 +245,14 @@ command_agent = create_react_agent(
 # ).compile()
 
 
-supervisor_agent = create_react_agent(
-    model="openai:gpt-4o",
-    tools=[handoff_to_storage, handoff_to_realtime],
-    prompt=supervisor_prompt,
-    name="supervisor"
-)
-
 # Define the multi-agent supervisor graph
 supervisor = (
-    StateGraph(State)
-    # NOTE: `destinations` is only needed for visualization and doesn't affect runtime behavior
+    StateGraph(MessagesState)
+    # 'destinations' is only needed for visualization and doesn't affect runtime behavior
     .add_node(supervisor_agent, destinations=("store_agent", "command_agent"))
     .add_node(store_agent)
     .add_node(command_agent)
     .add_edge(START, "supervisor")
-    # always return back to the supervisor
     .add_edge("store_agent", "supervisor")
     .add_edge("command_agent", "supervisor")
     .compile()
