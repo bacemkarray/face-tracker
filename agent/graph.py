@@ -12,7 +12,7 @@ import redis
 import json
 
 from typing import Optional, Literal, List, Annotated, Dict
-from typing_extensions import TypedDict
+from typing_extensions import TypedDict, Any
 
 # https://smith.langchain.com/studio/?baseUrl=http://127.0.0.1:8123
 
@@ -20,15 +20,15 @@ from typing_extensions import TypedDict
 
 # subclassing MessagesState
 class State(MessagesState):
-    id: str
-    embedding: List[float]
+    id: Optional[str] = None
+    embedding: Optional[List[float]] = None
     remaining_steps: Optional[List[str]] # supervisor won't accept this schema unless I include this
 
 # Storage handoff schema
 class StoragePayload(BaseModel):
     action: Literal["store", "get", "rename", "delete"] = Field(..., description="Action to perform")
     face_id: Optional[str] = Field(None, description="Face ID (required for rename/get/delete)")
-    embedding: Optional[list[float]] = Field(None, description="Embedding vector (required for store)")
+    metadata: Optional[dict] = Field(None, description="Optional metadata")
     old_key: Optional[str] = Field(None, description="Old key (rename only)")
     new_key: Optional[str] = Field(None, description="New key (rename only)")
 
@@ -47,8 +47,7 @@ def create_custom_handoff_tool(*, agent_name: str, name: str | None, description
         # The payload is the input to the handoff tool, matching your schema
         payload: Annotated[StoragePayload | RealtimePayload, "Payload for handoff"],
         # Inject current state and tool call id (ignored by LLM)
-        state: Annotated[State, InjectedState],
-        tool_call_id: Annotated[str, InjectedToolCallId],
+        state: Annotated[Any, InjectedState],
     ) -> Command:
         # Create a user message with the payload serialized as JSON or string
         task_description_message = {
@@ -214,11 +213,12 @@ You must ensure that important relevant information is communicated between the 
 It is pivotal that this communication exists, otherwise the system will collapse.
 
 Always fill the handoff tool arguments exactly as per their schemas and do not attempt to do any work yourself.
-
 If the user command is incomplete or ambiguous, do not delegate immediately. Instead, ask the user a clarifying question to get the missing information. 
 For example, if the user says "rename the embedding Bacem" or "delete the embedding" without specifying the new name, 
 respond with "What do you want me to rename Bacem to? and "Could you clarify which embedding to delete?" respectively. 
-The only exception to this is when you are asked to store an embedding.
+The only exception to this is when you are asked to store an embedding. Always remember:
+- Embeddings are already available in the state schema when an embedding needs to be stored. 
+- Never ask the user to provide the raw embedding vector. Instead, pass the `embedding` field from the state directly into the tool call.
 """
 
 
@@ -239,33 +239,33 @@ command_agent = create_react_agent(
     prompt=command_prompt
 )
 
-supervisor = create_supervisor(
-    state_schema=State,
-    agents=[store_agent, command_agent],
-    model=ChatOpenAI(model="gpt-4o"),
-    tools=[handoff_to_storage, handoff_to_realtime],
-    prompt=supervisor_prompt,
-    name="supervisor"
-).compile()
-
-
-# supervisor_agent = create_react_agent(
-#     model="openai:gpt-4o",
+# supervisor = create_supervisor(
+#     state_schema=State,
+#     agents=[store_agent, command_agent],
+#     model=ChatOpenAI(model="gpt-4o"),
 #     tools=[handoff_to_storage, handoff_to_realtime],
 #     prompt=supervisor_prompt,
 #     name="supervisor"
-# )
+# ).compile()
 
-# # Define the multi-agent supervisor graph
-# supervisor = (
-#     StateGraph(MessagesState)
-#     # NOTE: `destinations` is only needed for visualization and doesn't affect runtime behavior
-#     .add_node(supervisor_agent, destinations=("store_agent", "command_agent", END))
-#     .add_node(store_agent)
-#     .add_node(command_agent)
-#     .add_edge(START, "supervisor")
-#     # always return back to the supervisor
-#     .add_edge("store_agent", "supervisor")
-#     .add_edge("command_agent", "supervisor")
-#     .compile()
-# )
+
+supervisor_agent = create_react_agent(
+    model="openai:gpt-4o",
+    tools=[handoff_to_storage, handoff_to_realtime],
+    prompt=supervisor_prompt,
+    name="supervisor"
+)
+
+# Define the multi-agent supervisor graph
+supervisor = (
+    StateGraph(State)
+    # NOTE: `destinations` is only needed for visualization and doesn't affect runtime behavior
+    .add_node(supervisor_agent, destinations=("store_agent", "command_agent"))
+    .add_node(store_agent)
+    .add_node(command_agent)
+    .add_edge(START, "supervisor")
+    # always return back to the supervisor
+    .add_edge("store_agent", "supervisor")
+    .add_edge("command_agent", "supervisor")
+    .compile()
+)
