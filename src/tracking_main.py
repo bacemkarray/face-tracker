@@ -55,7 +55,7 @@ model_name = "buffalo_l" # InsightFace provided model
 
 # setup
 face_memory = FaceMemory()
-# s = Serial(port="COM6", baudrate=115200)
+s = Serial(port="COM6", baudrate=115200)
 
 
 if enable_gpu:
@@ -85,43 +85,8 @@ selected_center = None
 latest_frame = None
 faces = []
 
-# move this soon
-def click_event(event: int, x: int, y: int, flags: int, param) -> None:
-    """
-    Handle mouse click events to select an object for focused tracking.
-
-    Args:
-        event (int): OpenCV mouse event type.
-        x (int): X-coordinate of the mouse event.
-        y (int): Y-coordinate of the mouse event.
-        flags (int): Any relevant flags passed by OpenCV.
-        param (Any): Additional parameters (not used).
-    """
-    pass
-    # global faces, selected_object_id
-    # if event == cv2.EVENT_LBUTTONDOWN and faces:
-    #         if not faces:
-    #             return
-
-    #         min_area = float("inf")
-    #         best_face = None
-    #         for face in faces:
-    #             x1, y1, x2, y2 = map(int, face.bbox)
-    #             if x1 <= x <= x2 and y1 <= y <= y2:
-    #                 area = (x2 - x1) * (y2 - y1)
-    #                 if area < min_area:
-    #                     min_area = area
-    #                     best_face = face
-            
-    #         if best_face:
-    #             matched_id = face_memory.match_or_add(best_face.embedding)
-    #             if matched_id:
-    #                 selected_object_id = matched_id
-    #                 print(f"🔵 TRACKING STARTED: memory (ID {selected_object_id})")
-
 
 cv2.namedWindow(window_name)
-cv2.setMouseCallback(window_name, click_event)
 
 fps_counter, fps_timer, fps_display = 0, time.time(), 0
 
@@ -149,9 +114,10 @@ while cap.isOpened():
         memory=face_memory)
     
     # Send to MCU
-    # packet = struct.pack('<HH', center[0], center[1])
-    # send data to MCU (little endian)
-    # s.write(packet)
+    if center:
+        packet = struct.pack('<HH', center[0], center[1])
+        # send data to MCU (little endian)
+        s.write(packet)
 
 
     cv2.imshow(window_name, im)
@@ -160,11 +126,7 @@ while cap.isOpened():
 
     key = cv2.waitKey(1) & 0xFF
     if key == ord("q"):
-        break
-    if key == ord("b"):
-        # face_memory.rename_face("???:1", "Bacem")
-        redis_helper.publish("realtime_commands", {"data": "???:1"})
-        
+        break        
 
 cap.release()
 if save_video and vw is not None:
